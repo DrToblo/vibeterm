@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#111111">
+  <title>claude</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- xterm.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/css/xterm.css">
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0/lib/addon-fit.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0/lib/addon-web-links.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0/lib/addon-webgl.js"></script>
+
+  <style>
+    /* ── Variables ── */
+    :root {
+      --bg-primary:    #111111;
+      --bg-secondary:  #1A1A1A;
+      --bg-card:       #161616;
+      --border-color:  #2A2A2A;
+      --text-primary:  #EEEEEE;
+      --text-secondary:#666666;
+      --accent:        #D97757;
+      --accent-hover:  #C96442;
+      --status-green:  #30A46C;
+      --status-red:    #E5484D;
+      --status-amber:  #F76B15;
+      --font-ui:       'JetBrains Mono', 'Fira Code', monospace;
+      --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+      --header-h:      52px;
+      --pill-h:        52px;   /* toolbar pill height */
+      --pill-gap:      10px;   /* gap between pill and screen edge */
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: #111111; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Views ── */
+    #launch-screen, #terminal-view {
+      position: fixed;
+      inset: 0;
+      transition: opacity 0.2s ease;
+    }
+    #launch-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      z-index: 10;
+    }
+    #terminal-view {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+      z-index: 5;
+    }
+    .hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Launch Card ── */
+    .launch-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 480px;
+      margin: 16px;
+      overflow: hidden;
+    }
+    .launch-inner {
+      padding: 28px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Wordmark */
+    .wordmark {
+      font-family: var(--font-ui);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.3px;
+    }
+
+    /* Labels */
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    /* ── Directory Browser ── */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px 8px 0 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-height: 36px;
+    }
+    .breadcrumb-seg {
+      color: var(--accent);
+      cursor: pointer;
+      padding: 1px 3px;
+      border-radius: 3px;
+      transition: background 0.12s;
+      white-space: nowrap;
+    }
+    .breadcrumb-seg:hover { background: rgba(217,119,87,0.10); }
+    .breadcrumb-sep {
+      color: var(--border-color);
+      user-select: none;
+      font-size: 11px;
+    }
+    .browser-list {
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--bg-card);
+    }
+    .browser-list::-webkit-scrollbar { width: 4px; }
+    .browser-list::-webkit-scrollbar-track { background: transparent; }
+    .browser-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+    .browser-entry {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-primary);
+      transition: background 0.1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .browser-entry:last-child { border-bottom: none; }
+    .browser-entry:hover, .browser-entry:active { background: var(--bg-secondary); }
+    .browser-entry.file { color: var(--text-secondary); cursor: default; }
+    .browser-entry.file:hover { background: transparent; }
+    .browser-entry.parent { color: var(--text-secondary); }
+    .entry-icon { font-size: 14px; flex-shrink: 0; line-height: 1; }
+    .entry-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .browser-loading, .browser-error {
+      padding: 20px 12px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .browser-error { color: var(--status-red); }
+    .browser-spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* ── CLI Toggle ── */
+    .cli-toggle { display: flex; gap: 8px; }
+    .cli-btn {
+      flex: 1;
+      height: 40px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .cli-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .cli-btn:not(.active):hover { border-color: var(--text-secondary); }
+
+    /* ── Start Button ── */
+    .start-btn {
+      height: 48px;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .start-btn:hover { background: var(--accent-hover); }
+    .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .start-btn:active:not(:disabled) { transform: scale(0.99); }
+
+    /* ── Header ── */
+    #header {
+      height: var(--header-h);
+      min-height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .header-wordmark {
+      font-family: var(--font-ui);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: -0.2px;
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.green { background: var(--status-green); }
+    .status-dot.amber { background: var(--status-amber); animation: pulse 1.2s ease-in-out infinite; }
+    .status-dot.red   { background: var(--status-red); }
+
+    .kill-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-family: var(--font-ui);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .kill-btn:hover { border-color: var(--status-red); color: var(--status-red); }
+    .kill-btn.confirm { background: var(--status-red); color: #fff; border-color: var(--status-red); }
+
+    /* ── Terminal Container ── */
+    #terminal-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      padding: 8px;
+    }
+    #terminal-container {
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      background: #111111;
+    }
+    @media (max-width: 767px) {
+      #terminal-wrap { padding: 0; }
+      #terminal-container { border-radius: 0; box-shadow: none; }
+    }
+    /* xterm overrides */
+    .xterm { height: 100%; }
+    .xterm-screen { margin: 0 auto; }   /* center canvas — xterm leaves fractional px on one side */
+    .xterm-viewport { overflow-y: auto !important; }
+    .xterm-viewport::-webkit-scrollbar { width: 6px; }
+    .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
+    .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.2); border-radius: 3px; }
+
+    /* ── Mobile Toolbar Pill ── */
+    /* Floats above keyboard, not part of flex flow */
+    #mobile-toolbar {
+      display: none;
+      position: fixed;
+      bottom: var(--pill-gap);
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 560px;
+      height: var(--pill-h);
+      background: rgba(22, 22, 22, 0.97);
+      border: 1px solid var(--border-color);
+      border-radius: calc(var(--pill-h) / 2);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      overflow: hidden;
+      align-items: center;
+      padding: 0 6px;
+      gap: 0;
+      z-index: 40;
+    }
+    .mobile-show #mobile-toolbar { display: flex; }
+
+    .tb-btn {
+      flex: 1;
+      min-width: 0;
+      height: 40px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      transition: color 0.08s, transform 0.08s, background 0.08s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      border-radius: 999px;
+    }
+    .tb-btn:active {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(0.88);
+    }
+    /* Sticky Ctrl active state */
+    .tb-btn.ctrl-active {
+      color: var(--accent);
+    }
+    .tb-sep {
+      flex-shrink: 0;
+      width: 1px;
+      height: 18px;
+      background: var(--border-color);
+      margin: 0 2px;
+    }
+
+    /* ── Reconnect Overlay ── */
+    #reconnect-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(17,17,17,0.88);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #reconnect-overlay.visible { opacity: 1; pointer-events: auto; }
+    .reconnect-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .reconnect-text { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+
+    /* ── Hidden mobile input ── */
+    #mobile-input {
+      position: fixed;
+      top: -9999px; left: -9999px;
+      opacity: 0;
+      width: 1px; height: 1px;
+      resize: none;
+      border: none;
+      outline: none;
+    }
+
+    /* ── Compose Overlay ── */
+    #compose-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      /* height is set dynamically by JS via visualViewport */
+      height: 100%;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+      /* Use 100vh (layout viewport) so the slide-off distance is always
+         the full screen height, regardless of the element's current height */
+      transform: translateY(100vh);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #compose-overlay.open { transform: translateY(0); }
+
+    #compose-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: var(--header-h);
+      min-height: var(--header-h);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    #compose-header span {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .compose-close {
+      background: none;
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+      line-height: 1;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-family: var(--font-ui);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .compose-close:hover { color: var(--text-primary); }
+
+    #compose-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 16px;
+      gap: 12px;
+      overflow: hidden;
+    }
+    #compose-textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #compose-textarea:focus { border-color: var(--accent); }
+    #compose-textarea::placeholder { color: var(--text-secondary); }
+
+    #compose-send {
+      flex-shrink: 0;
+      height: 48px;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    #compose-send:hover { background: var(--accent-hover); }
+    #compose-send:active { transform: scale(0.99); }
+
+    /* ── Animations ── */
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     LAUNCH SCREEN
+══════════════════════════════════════════════════════════════ -->
+<div id="launch-screen">
+  <div class="launch-card">
+    <div class="launch-inner">
+
+      <div class="wordmark">claude</div>
+
+      <div class="browser-section">
+        <div class="field-label">Working Directory</div>
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div class="browser-list" id="browser-list">
+          <div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Run with</div>
+        <div class="cli-toggle">
+          <button class="cli-btn active" data-cli="claude">Claude</button>
+          <button class="cli-btn" data-cli="gemini">Gemini</button>
+        </div>
+      </div>
+
+      <button class="start-btn" id="start-btn">Start Session →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TERMINAL VIEW
+══════════════════════════════════════════════════════════════ -->
+<div id="terminal-view" class="hidden">
+
+  <header id="header">
+    <div class="header-wordmark">claude</div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="status-dot red" id="status-dot"></div>
+        <span id="status-text">Disconnected</span>
+      </div>
+      <button class="kill-btn" id="kill-btn">✕ End Session</button>
+    </div>
+  </header>
+
+  <div id="terminal-wrap">
+    <div id="terminal-container"></div>
+  </div>
+
+</div>
+
+<!-- Floating pill toolbar (outside terminal-view, position: fixed) -->
+<div id="mobile-toolbar">
+  <button class="tb-btn" data-key="&#x1b;">Esc</button>
+  <button class="tb-btn" data-key="&#x09;">Tab</button>
+  <button class="tb-btn" data-key="&#x1b;[A">▲</button>
+  <button class="tb-btn" data-key="&#x1b;[B">▼</button>
+  <button class="tb-btn" data-key="&#x1b;[D">◀</button>
+  <button class="tb-btn" data-key="&#x1b;[C">▶</button>
+  <button class="tb-btn" data-key="&#x0d;">↵</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="tb-ctrl">Ctrl</button>
+  <button class="tb-btn" data-key="&#x03;">^C</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="tb-compose" style="font-size:20px">✎</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     COMPOSE OVERLAY
+══════════════════════════════════════════════════════════════ -->
+<div id="compose-overlay">
+  <div id="compose-header">
+    <span>Compose</span>
+    <button class="compose-close" id="compose-cancel">✕</button>
+  </div>
+  <div id="compose-body">
+    <textarea id="compose-textarea"
+      placeholder="Type your command or message…"
+      autocomplete="off" autocorrect="off" autocapitalize="off"
+      spellcheck="false"></textarea>
+    <button id="compose-send">Send →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     RECONNECT OVERLAY
+══════════════════════════════════════════════════════════════ -->
+<div id="reconnect-overlay">
+  <div class="reconnect-spinner"></div>
+  <div class="reconnect-text">Reconnecting…</div>
+</div>
+
+<textarea id="mobile-input"
+  autocomplete="off" autocorrect="off" autocapitalize="off"
+  spellcheck="false" inputmode="none" tabindex="-1" rows="1"></textarea>
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────────────
+const state = {
+  browsePath: '',
+  selectedCli: 'claude',
+  sessionActive: false,
+  wsConnected: false,
+  ws: null,
+  reconnectAttempt: 0,
+  reconnectTimer: null,
+  reconnectOverlayTimer: null,
+  killConfirmTimer: null,
+  killConfirmPending: false,
+  ctrlMode: false,
+  isMobile: ('ontouchstart' in window) || window.innerWidth < 768,
+};
+
+// ── DOM refs ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const launchScreen     = $('launch-screen');
+const terminalView     = $('terminal-view');
+const terminalWrap     = $('terminal-wrap');
+const breadcrumb       = $('breadcrumb');
+const browserList      = $('browser-list');
+const startBtn         = $('start-btn');
+const statusDot        = $('status-dot');
+const statusText       = $('status-text');
+const killBtn          = $('kill-btn');
+const reconnectOverlay = $('reconnect-overlay');
+const mobileToolbar    = $('mobile-toolbar');
+const mobileInput      = $('mobile-input');
+const ctrlBtn          = $('tb-ctrl');
+
+// ── xterm.js ───────────────────────────────────────────────────────────────────
+const fitAddon = new FitAddon.FitAddon();
+const webLinks = new WebLinksAddon.WebLinksAddon();
+
+const term = new Terminal({
+  fontFamily:       '"JetBrains Mono", "Fira Code", monospace',
+  fontSize:         window.innerWidth < 768 ? 12 : 13.5,
+  lineHeight:       1.0,
+  customGlyphs:     true,
+  scrollback:       5000,
+  scrollSensitivity: 5,
+  allowProposedApi: true,
+  theme: {
+    background:          '#111111',
+    foreground:          '#EEEEEE',
+    cursor:              '#D97757',
+    cursorAccent:        '#111111',
+    selectionBackground: 'rgba(217,119,87,0.30)',
+    black:        '#1A1A1A', red:           '#E5484D',
+    green:        '#30A46C', yellow:        '#F76B15',
+    blue:         '#4D9EFF', magenta:       '#A06BDB',
+    cyan:         '#00B4D8', white:         '#CCCCCC',
+    brightBlack:  '#555555', brightRed:     '#FF6369',
+    brightGreen:  '#4ADE80', brightYellow:  '#FFB224',
+    brightBlue:   '#74B3FF', brightMagenta: '#C084FC',
+    brightCyan:   '#22D3EE', brightWhite:   '#FFFFFF',
+  },
+});
+
+term.loadAddon(fitAddon);
+term.loadAddon(webLinks);
+term.open($('terminal-container'));
+term.loadAddon(new WebglAddon.WebglAddon());
+
+term.onData(data => {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(data);
+});
+
+// ── Layout / fit ───────────────────────────────────────────────────────────────
+// PILL_H + PILL_GAP must match CSS --pill-h and --pill-gap
+const PILL_H   = 52;
+const PILL_GAP = 10;
+
+let resizeTimer;
+
+function doFit() {
+  try {
+    fitAddon.fit();
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      state.ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+    }
+  } catch (_) {}
+}
+
+// Use visualViewport to correctly handle the on-screen keyboard.
+// Updates terminal height and pill position so they stay above the keyboard.
+function updateLayout() {
+  const vv = window.visualViewport;
+  if (!vv) { doFit(); return; }
+
+  // How many px of keyboard is covering the bottom of the window
+  const keyboardH = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+
+  // Position pill just above the keyboard
+  if (state.isMobile && state.sessionActive) {
+    const pillBottom = keyboardH + PILL_GAP;
+    mobileToolbar.style.bottom = pillBottom + 'px';
+
+    // Shrink terminal-wrap so content isn't hidden behind the pill
+    const pillarH = PILL_H + pillBottom;
+    terminalWrap.style.paddingBottom = pillarH + 'px';
+  }
+
+  doFit();
+}
+
+// Listen on both window resize (desktop) and visualViewport resize (keyboard)
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(updateLayout, 80);
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(updateLayout, 80);
+  });
+  window.visualViewport.addEventListener('scroll', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(updateLayout, 80);
+  });
+}
+
+// ── View switching ─────────────────────────────────────────────────────────────
+function showLaunch() {
+  launchScreen.classList.remove('hidden');
+  terminalView.classList.add('hidden');
+  mobileToolbar.style.display = 'none';
+  document.body.classList.remove('mobile-show');
+  terminalWrap.style.paddingBottom = '';
+}
+
+function showTerminal() {
+  launchScreen.classList.add('hidden');
+  terminalView.classList.remove('hidden');
+  if (state.isMobile) {
+    document.body.classList.add('mobile-show');
+    mobileToolbar.style.display = '';
+  }
+  requestAnimationFrame(() => { updateLayout(); term.scrollToBottom(); });
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────────
+function setStatus(type, text) {
+  statusDot.className = 'status-dot ' + type;
+  statusText.textContent = text;
+}
+
+// ── Reconnect overlay ──────────────────────────────────────────────────────────
+function showReconnectOverlay() { reconnectOverlay.classList.add('visible'); }
+function hideReconnectOverlay() {
+  reconnectOverlay.classList.remove('visible');
+  clearTimeout(state.reconnectOverlayTimer);
+  state.reconnectOverlayTimer = null;
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────────
+
+// Tear down whatever socket exists and start fresh.
+function forceReconnect() {
+  clearTimeout(state.reconnectTimer);
+  clearTimeout(state.reconnectOverlayTimer);
+  state.reconnectOverlayTimer = null;
+  state.reconnectAttempt = 0;
+
+  if (state.ws) {
+    const old = state.ws;
+    state.ws = null;
+    old.onopen = old.onmessage = old.onclose = old.onerror = null;
+    try { old.close(); } catch (_) {}
+  }
+
+  showReconnectOverlay();
+  state.reconnectTimer = setTimeout(connect, 150);
+}
+
+async function connect() {
+  // On reconnect (not first load), skip the doomed WS attempt entirely.
+  // Mobile browsers block new WS connections while the stale TCP is dying.
+  // Just confirm the server is up via HTTP, then reload the page.
+  if (state.hasConnectedOnce) {
+    try {
+      await fetch(`/api/session?_=${Date.now()}`, { cache: 'no-store' });
+      return location.reload();
+    } catch (_) {
+      scheduleReconnect();
+      return;
+    }
+  }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}/?_=${Date.now()}`);
+  state.ws = ws;
+  ws.binaryType = 'arraybuffer';
+
+  const connectTimeout = setTimeout(() => {
+    if (state.ws !== ws) return;
+    try { ws.close(); } catch (_) {}
+  }, 3000);
+
+  ws.addEventListener('open', () => {
+    clearTimeout(connectTimeout);
+    if (state.ws !== ws) return;
+    state.wsConnected = true;
+    state.hasConnectedOnce = true;
+    state.reconnectAttempt = 0;
+    setStatus('green', 'Connected');
+    hideReconnectOverlay();
+    term.reset();
+  });
+
+  ws.addEventListener('message', evt => {
+    if (state.ws !== ws) return;
+    if (evt.data instanceof ArrayBuffer) {
+      term.write(new Uint8Array(evt.data));
+      return;
+    }
+    const raw = evt.data;
+    let msg;
+    try { msg = JSON.parse(raw); } catch (_) { term.write(raw); return; }
+
+    if (msg.type === 'state') {
+      state.sessionActive = msg.active;
+      if (msg.active) {
+        showTerminal();
+      } else {
+        showLaunch();
+        term.clear();
+        resetKillBtn();
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Session →';
+      }
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    clearTimeout(connectTimeout);
+    if (state.ws !== ws) return;
+    state.wsConnected = false;
+    setStatus('amber', 'Reconnecting…');
+    scheduleReconnect();
+    if (!state.reconnectOverlayTimer) {
+      state.reconnectOverlayTimer = setTimeout(showReconnectOverlay, 1000);
+    }
+  });
+
+  ws.addEventListener('error', () => {
+    clearTimeout(connectTimeout);
+    if (state.ws !== ws) return;
+    ws.close();
+  });
+}
+
+function scheduleReconnect() {
+  const delays = [500, 1000, 2000, 4000, 10000];
+  const delay = delays[Math.min(state.reconnectAttempt, delays.length - 1)];
+  state.reconnectAttempt++;
+  clearTimeout(state.reconnectTimer);
+  if (document.visibilityState === 'hidden') return;
+  state.reconnectTimer = setTimeout(connect, delay);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  forceReconnect();
+});
+
+window.addEventListener('pageshow', e => {
+  if (e.persisted) forceReconnect();
+});
+
+window.addEventListener('focus', () => {
+  if (!state.wsConnected) forceReconnect();
+});
+
+setInterval(() => {
+  if (document.visibilityState !== 'visible') return;
+  if (state.wsConnected && state.ws && state.ws.readyState === WebSocket.OPEN) return;
+  if (state.reconnectTimer) return;
+  forceReconnect();
+}, 3000);
+
+// ── Directory Browser ──────────────────────────────────────────────────────────
+async function browse(dirPath) {
+  browserList.innerHTML = '<div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>';
+  let data;
+  try {
+    const resp = await fetch(`/api/browse?path=${encodeURIComponent(dirPath)}`);
+    data = await resp.json();
+  } catch (err) {
+    browserList.innerHTML = `<div class="browser-error">Network error: ${err.message}</div>`;
+    return;
+  }
+  if (data.error) {
+    browserList.innerHTML = `<div class="browser-error">${data.error}</div>`;
+    if (data.path) { state.browsePath = data.path; renderBreadcrumb(data.path); }
+    return;
+  }
+  state.browsePath = data.path;
+  renderBreadcrumb(data.path);
+
+  const frag = document.createDocumentFragment();
+  if (data.parent) frag.appendChild(makeEntryRow('parent', '↩', '..', data.parent));
+  for (const e of data.entries) {
+    const full = data.path.replace(/\/$/, '') + '/' + e.name;
+    frag.appendChild(makeEntryRow(e.type, e.type === 'dir' ? '📁' : '📄', e.name, e.type === 'dir' ? full : null));
+  }
+  if (!data.entries.length && !data.parent) {
+    const msg = document.createElement('div');
+    msg.className = 'browser-loading';
+    msg.textContent = 'Empty directory';
+    frag.appendChild(msg);
+  }
+  browserList.innerHTML = '';
+  browserList.appendChild(frag);
+}
+
+function makeEntryRow(type, icon, name, targetPath) {
+  const row = document.createElement('div');
+  row.className = `browser-entry ${type}`;
+  const ic = document.createElement('span'); ic.className = 'entry-icon'; ic.textContent = icon;
+  const nm = document.createElement('span'); nm.className = 'entry-name'; nm.textContent = name;
+  row.appendChild(ic); row.appendChild(nm);
+  if (targetPath) row.addEventListener('click', () => browse(targetPath));
+  return row;
+}
+
+function renderBreadcrumb(fullPath) {
+  breadcrumb.innerHTML = '';
+  const parts = fullPath.split('/').filter(Boolean);
+  const paths  = ['/', ...parts.map((_, i) => '/' + parts.slice(0, i + 1).join('/'))];
+  const labels = ['/', ...parts];
+  labels.forEach((label, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'breadcrumb-sep'; sep.textContent = '/';
+      breadcrumb.appendChild(sep);
+    }
+    const seg = document.createElement('span');
+    seg.className = 'breadcrumb-seg'; seg.textContent = label; seg.title = paths[i];
+    seg.addEventListener('click', () => browse(paths[i]));
+    breadcrumb.appendChild(seg);
+  });
+}
+
+// ── CLI Toggle ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.cli-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cli-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.selectedCli = btn.dataset.cli;
+  });
+});
+
+// ── Start Session ──────────────────────────────────────────────────────────────
+startBtn.addEventListener('click', async () => {
+  if (!state.browsePath) return;
+  startBtn.disabled = true;
+  startBtn.textContent = 'Starting…';
+  try {
+    const resp = await fetch('/api/session/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cwd: state.browsePath, cli: state.selectedCli }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      alert(data.error || 'Failed to start session');
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start Session →';
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+    startBtn.disabled = false;
+    startBtn.textContent = 'Start Session →';
+  }
+});
+
+// ── Kill Session ───────────────────────────────────────────────────────────────
+function resetKillBtn() {
+  state.killConfirmPending = false;
+  clearTimeout(state.killConfirmTimer);
+  killBtn.textContent = '✕ End Session';
+  killBtn.classList.remove('confirm');
+}
+killBtn.addEventListener('click', async () => {
+  if (!state.killConfirmPending) {
+    state.killConfirmPending = true;
+    killBtn.textContent = 'Confirm?';
+    killBtn.classList.add('confirm');
+    state.killConfirmTimer = setTimeout(resetKillBtn, 3000);
+  } else {
+    resetKillBtn();
+    try { await fetch('/api/session/kill', { method: 'POST' }); } catch (_) {}
+  }
+});
+
+// ── Mobile Toolbar ─────────────────────────────────────────────────────────────
+function sendKey(key) {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(key);
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+// Regular key buttons
+document.querySelectorAll('.tb-btn[data-key]').forEach(btn => {
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    sendKey(btn.dataset.key);
+  });
+});
+
+// Ctrl sticky modifier
+ctrlBtn.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  state.ctrlMode = !state.ctrlMode;
+  ctrlBtn.classList.toggle('ctrl-active', state.ctrlMode);
+  if (navigator.vibrate) navigator.vibrate(8);
+  // Focus the hidden input so keyboard stays up
+  if (state.isMobile) { mobileInput.setAttribute('inputmode', 'text'); mobileInput.focus(); }
+});
+
+function clearCtrl() {
+  state.ctrlMode = false;
+  ctrlBtn.classList.remove('ctrl-active');
+}
+
+// ── Compose Overlay ───────────────────────────────────────────────────────────
+const composeOverlay  = $('compose-overlay');
+const composeTextarea = $('compose-textarea');
+const composeSend     = $('compose-send');
+const composeCancel   = $('compose-cancel');
+const tbCompose       = $('tb-compose');
+
+function updateComposeSize() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  composeOverlay.style.height = vv.height + 'px';
+  composeOverlay.style.top    = vv.offsetTop + 'px';
+}
+
+function openCompose() {
+  updateComposeSize();
+  composeOverlay.classList.add('open');
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateComposeSize);
+    window.visualViewport.addEventListener('scroll', updateComposeSize);
+  }
+  setTimeout(() => { composeTextarea.focus(); }, 50);
+}
+
+function closeCompose() {
+  // Remove viewport listeners first so keyboard dismissal doesn't fight the animation
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', updateComposeSize);
+    window.visualViewport.removeEventListener('scroll', updateComposeSize);
+  }
+  composeTextarea.blur();
+  composeOverlay.classList.remove('open');
+  // Reset inline size after the slide-out animation so next open starts clean
+  setTimeout(() => {
+    composeOverlay.style.height = '';
+    composeOverlay.style.top = '';
+  }, 240);
+}
+
+function submitCompose() {
+  const text = composeTextarea.value;
+  if (text && state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(text + '\r');
+  }
+  composeTextarea.value = '';
+  closeCompose();
+}
+
+tbCompose.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (navigator.vibrate) navigator.vibrate(8);
+  openCompose();
+});
+
+composeCancel.addEventListener('click', closeCompose);
+
+composeSend.addEventListener('click', submitCompose);
+
+// Cmd+Enter / Ctrl+Enter also submits
+composeTextarea.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    submitCompose();
+  }
+});
+
+// ── Mobile keyboard capture ────────────────────────────────────────────────────
+if (state.isMobile) {
+  $('terminal-container').addEventListener('click', () => {
+    mobileInput.setAttribute('inputmode', 'text');
+    mobileInput.focus();
+  });
+
+  mobileInput.addEventListener('input', () => {
+    const val = mobileInput.value;
+    if (!val) return;
+    if (state.ctrlMode) {
+      // Apply Ctrl modifier to first character
+      const code = val[0].toLowerCase().charCodeAt(0) - 96;
+      if (code >= 1 && code <= 26) sendKey(String.fromCharCode(code));
+      else sendKey(val);
+      clearCtrl();
+    } else {
+      sendKey(val);
+    }
+    mobileInput.value = '';
+  });
+
+  mobileInput.addEventListener('keydown', e => {
+    let key = null;
+
+    if (state.ctrlMode && e.key.length === 1) {
+      const code = e.key.toLowerCase().charCodeAt(0) - 96;
+      if (code >= 1 && code <= 26) {
+        key = String.fromCharCode(code);
+        clearCtrl();
+        e.preventDefault();
+        if (key) { sendKey(key); return; }
+      }
+    }
+
+    if      (e.key === 'Backspace')   key = '\x7f';
+    else if (e.key === 'Enter')       key = '\r';
+    else if (e.key === 'Escape')      key = '\x1b';
+    else if (e.key === 'Tab')         { key = '\t'; e.preventDefault(); }
+    else if (e.key === 'ArrowUp')     key = '\x1b[A';
+    else if (e.key === 'ArrowDown')   key = '\x1b[B';
+    else if (e.key === 'ArrowLeft')   key = '\x1b[D';
+    else if (e.key === 'ArrowRight')  key = '\x1b[C';
+
+    if (key) { sendKey(key); e.preventDefault(); }
+  });
+
+  mobileInput.addEventListener('blur', () => {
+    mobileInput.setAttribute('inputmode', 'none');
+  });
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────────
+(async () => {
+  const resp = await fetch('/api/session').catch(() => null);
+  const session = resp ? await resp.json().catch(() => null) : null;
+  browse((session && session.cwd) ? session.cwd : '');
+})();
+
+connect();
+</script>
+</body>
+</html>

@@ -68,7 +68,7 @@
     #terminal-view {
       display: flex;
       flex-direction: column;
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
       z-index: 5;
     }
     .hidden { opacity: 0; pointer-events: none; }
@@ -314,7 +314,7 @@
     .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
     .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.2); border-radius: 3px; }
 
-    /* ── Mobile Toolbar Pill ── */
+    /* ── Mobile Toolbar Row ── */
     /* Floats above keyboard, not part of flex flow */
     #mobile-toolbar {
       display: none;
@@ -324,6 +324,15 @@
       transform: translateX(-50%);
       width: calc(100% - 24px);
       max-width: 560px;
+      align-items: center;
+      gap: 8px;
+      z-index: 40;
+    }
+    .mobile-show #mobile-toolbar { display: flex; }
+
+    /* ── Toolbar Pill ── */
+    #toolbar-pill {
+      flex: 1;
       height: var(--pill-h);
       background: rgba(22, 22, 22, 0.97);
       border: 1px solid var(--border-color);
@@ -332,12 +341,38 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       overflow: hidden;
+      display: flex;
       align-items: center;
       padding: 0 6px;
       gap: 0;
-      z-index: 40;
     }
-    .mobile-show #mobile-toolbar { display: flex; }
+
+    /* ── Compose Circle Button ── */
+    #tb-compose {
+      flex-shrink: 0;
+      width: var(--pill-h);
+      height: var(--pill-h);
+      border-radius: 50%;
+      background: rgba(22, 22, 22, 0.97);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      cursor: pointer;
+      transition: color 0.08s, transform 0.08s, background 0.08s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    #tb-compose:active {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(0.88);
+    }
 
     .tb-btn {
       flex: 1;
@@ -415,97 +450,104 @@
       outline: none;
     }
 
-    /* ── Compose Overlay ── */
+    /* ── Compose Scrim ── */
+    #compose-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 59;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #compose-scrim.visible { opacity: 1; pointer-events: auto; }
+
+    /* ── Compose Overlay — bottom sheet ── */
     #compose-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      /* height is set dynamically by JS via visualViewport */
-      height: 100%;
+      bottom: 0;
+      left: 0;
+      right: 0;
       z-index: 60;
       display: flex;
       flex-direction: column;
-      background: var(--bg-primary);
-      /* Use 100vh (layout viewport) so the slide-off distance is always
-         the full screen height, regardless of the element's current height */
-      transform: translateY(100vh);
-      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(22, 22, 22, 0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #compose-overlay.open { transform: translateY(0); }
 
-    #compose-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      height: var(--header-h);
-      min-height: var(--header-h);
-      border-bottom: 1px solid var(--border-color);
-      flex-shrink: 0;
-    }
-    #compose-header span {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .compose-close {
-      background: none;
-      border: 1px solid var(--border-color);
-      font-size: 15px;
-      line-height: 1;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-family: var(--font-ui);
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-    .compose-close:hover { color: var(--text-primary); }
-
     #compose-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
       padding: 14px 16px;
-      gap: 12px;
-      overflow: hidden;
+    }
+    #compose-box {
+      position: relative;
     }
     #compose-textarea {
-      flex: 1;
+      display: block;
       width: 100%;
       resize: none;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px 14px;
+      border: 1.5px solid #444444;
+      border-radius: 24px;
+      padding: 14px 52px 52px 16px;
       font-family: var(--font-mono);
       font-size: 14px;
       line-height: 1.5;
       color: var(--text-primary);
       background: var(--bg-secondary);
       outline: none;
-      transition: border-color 0.15s;
+      min-height: calc(33vh - 60px);
+      overflow-y: hidden;
     }
-    #compose-textarea:focus { border-color: var(--accent); }
     #compose-textarea::placeholder { color: var(--text-secondary); }
 
-    #compose-send {
-      flex-shrink: 0;
-      height: 48px;
-      width: 100%;
-      background: var(--accent);
-      color: #fff;
+    #compose-cancel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
       border: none;
-      border-radius: 999px;
-      font-family: var(--font-ui);
-      font-size: 15px;
-      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      transition: background 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: background 0.12s, color 0.12s;
+    }
+    #compose-cancel:hover { background: rgba(255,255,255,0.14); color: var(--text-primary); }
+
+    #compose-send {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.15s, transform 0.08s;
     }
     #compose-send:hover { background: var(--accent-hover); }
-    #compose-send:active { transform: scale(0.99); }
+    #compose-send:active { transform: scale(0.92); }
 
     /* ── Animations ── */
     @keyframes spin  { to { transform: rotate(360deg); } }
@@ -566,36 +608,45 @@
 
 </div>
 
-<!-- Floating pill toolbar (outside terminal-view, position: fixed) -->
+<!-- Floating toolbar row (outside terminal-view, position: fixed) -->
 <div id="mobile-toolbar">
-  <button class="tb-btn" data-key="&#x1b;">Esc</button>
-  <button class="tb-btn" data-key="&#x09;">Tab</button>
-  <button class="tb-btn" data-key="&#x1b;[A">▲</button>
-  <button class="tb-btn" data-key="&#x1b;[B">▼</button>
-  <button class="tb-btn" data-key="&#x1b;[D">◀</button>
-  <button class="tb-btn" data-key="&#x1b;[C">▶</button>
-  <button class="tb-btn" data-key="&#x0d;">↵</button>
-  <div class="tb-sep"></div>
-  <button class="tb-btn" id="tb-ctrl">Ctrl</button>
-  <button class="tb-btn" data-key="&#x03;">^C</button>
-  <div class="tb-sep"></div>
-  <button class="tb-btn" id="tb-compose" style="font-size:20px">✎</button>
+  <div id="toolbar-pill">
+    <button class="tb-btn" data-key="&#x1b;">Esc</button>
+    <button class="tb-btn" data-key="&#x09;">Tab</button>
+    <button class="tb-btn" data-key="&#x1b;[A">▲</button>
+    <button class="tb-btn" data-key="&#x1b;[B">▼</button>
+    <button class="tb-btn" data-key="&#x1b;[D">◀</button>
+    <button class="tb-btn" data-key="&#x1b;[C">▶</button>
+    <button class="tb-btn" data-key="&#x0d;" style="font-size:20px">↵</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" id="tb-ctrl">Ctrl</button>
+    <button class="tb-btn" data-key="&#x03;">^C</button>
+  </div>
+  <button id="tb-compose">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  </button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
-     COMPOSE OVERLAY
+     COMPOSE SCRIM + OVERLAY
 ══════════════════════════════════════════════════════════════ -->
+<div id="compose-scrim"></div>
 <div id="compose-overlay">
-  <div id="compose-header">
-    <span>Compose</span>
-    <button class="compose-close" id="compose-cancel">✕</button>
-  </div>
   <div id="compose-body">
-    <textarea id="compose-textarea"
-      placeholder="Type your command or message…"
-      autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false"></textarea>
-    <button id="compose-send">Send →</button>
+    <div id="compose-box">
+      <textarea id="compose-textarea"
+        placeholder="Type your command or message…"
+        autocomplete="off" autocorrect="off" autocapitalize="off"
+        spellcheck="false"></textarea>
+      <button id="compose-cancel">✕</button>
+      <button id="compose-send">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+        </svg>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1044,41 +1095,58 @@ function clearCtrl() {
 
 // ── Compose Overlay ───────────────────────────────────────────────────────────
 const composeOverlay  = $('compose-overlay');
+const composeScrim    = $('compose-scrim');
 const composeTextarea = $('compose-textarea');
 const composeSend     = $('compose-send');
 const composeCancel   = $('compose-cancel');
 const tbCompose       = $('tb-compose');
 
+function autoResizeTextarea() {
+  const vv = window.visualViewport;
+  const availH = (vv ? vv.height : window.innerHeight) - 60; // 60px overhead (padding + border-radius)
+  composeTextarea.style.height = 'auto';
+  const natural = composeTextarea.scrollHeight;
+  if (natural >= availH) {
+    composeTextarea.style.height = availH + 'px';
+    composeTextarea.style.overflowY = 'auto';
+  } else {
+    composeTextarea.style.height = natural + 'px';
+    composeTextarea.style.overflowY = 'hidden';
+  }
+}
+
 function updateComposeSize() {
   const vv = window.visualViewport;
   if (!vv) return;
-  composeOverlay.style.height = vv.height + 'px';
-  composeOverlay.style.top    = vv.offsetTop + 'px';
+  const keyboardH = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+  composeOverlay.style.bottom = keyboardH + 'px';
+  autoResizeTextarea();
 }
 
 function openCompose() {
   updateComposeSize();
   composeOverlay.classList.add('open');
+  composeScrim.classList.add('visible');
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', updateComposeSize);
     window.visualViewport.addEventListener('scroll', updateComposeSize);
   }
-  setTimeout(() => { composeTextarea.focus(); }, 50);
+  setTimeout(() => { composeTextarea.focus(); autoResizeTextarea(); }, 50);
 }
 
 function closeCompose() {
-  // Remove viewport listeners first so keyboard dismissal doesn't fight the animation
   if (window.visualViewport) {
     window.visualViewport.removeEventListener('resize', updateComposeSize);
     window.visualViewport.removeEventListener('scroll', updateComposeSize);
   }
   composeTextarea.blur();
   composeOverlay.classList.remove('open');
-  // Reset inline size after the slide-out animation so next open starts clean
+  composeScrim.classList.remove('visible');
   setTimeout(() => {
-    composeOverlay.style.height = '';
-    composeOverlay.style.top = '';
-  }, 240);
+    composeOverlay.style.bottom = '';
+    composeTextarea.style.height = '';
+    composeTextarea.style.overflowY = '';
+  }, 260);
 }
 
 function submitCompose() {
@@ -1097,8 +1165,14 @@ tbCompose.addEventListener('pointerdown', e => {
 });
 
 composeCancel.addEventListener('click', closeCompose);
+composeScrim.addEventListener('click', closeCompose);
 
-composeSend.addEventListener('click', submitCompose);
+composeSend.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  submitCompose();
+});
+
+composeTextarea.addEventListener('input', autoResizeTextarea);
 
 // Cmd+Enter / Ctrl+Enter also submits
 composeTextarea.addEventListener('keydown', e => {

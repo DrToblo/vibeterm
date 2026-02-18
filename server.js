@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const pty = require('node-pty');
+const { exec, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -35,6 +36,76 @@ function broadcast(data) {
   });
 }
 
+// ── tmux session management ────────────────────────────────────────────────────
+
+function tmuxName(cli) {
+  return `vibeterm-${cli}`;
+}
+
+function spawnSession(cli, cwd) {
+  const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
+  delete ptyEnv.CLAUDECODE;
+
+  // new-session -A: attach if session exists, create if not
+  const proc = pty.spawn('tmux', [
+    'new-session', '-A',
+    '-s', tmuxName(cli),
+    cli,
+  ], {
+    name: 'xterm-256color',
+    cols: 80,
+    rows: 24,
+    cwd,
+    env: ptyEnv,
+  });
+
+  ptyProcess = proc;
+  sessionInfo = { active: true, cwd, cli };
+  scrollbackBuffer = Buffer.alloc(0);
+
+  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli }));
+
+  proc.onData(data => {
+    appendScrollback(data);
+    broadcast(data);
+  });
+
+  proc.onExit(() => {
+    // Only update state if this is still the active process (not superseded by kill)
+    if (ptyProcess === proc) {
+      sessionInfo = { active: false, cwd: null, cli: null };
+      ptyProcess = null;
+      broadcast(JSON.stringify({ type: 'state', active: false }));
+    }
+  });
+}
+
+// On server startup: reattach to any surviving vibeterm tmux session
+function restoreExistingSession() {
+  try {
+    // list-panes -a gives session_name + pane cwd for every pane across all sessions
+    const output = execSync(
+      'tmux list-panes -a -F "#{session_name}|#{pane_current_path}"',
+      { encoding: 'utf8' }
+    ).trim();
+
+    for (const line of output.split('\n')) {
+      const pipe = line.indexOf('|');
+      if (pipe === -1) continue;
+      const name = line.slice(0, pipe);
+      const cwd  = line.slice(pipe + 1) || os.homedir();
+      const match = name.match(/^vibeterm-(claude|gemini)$/);
+      if (!match) continue;
+
+      console.log(`Reattaching to existing tmux session: ${name} (${cwd})`);
+      spawnSession(match[1], cwd);
+      break; // only restore one session at a time
+    }
+  } catch (_) {
+    // tmux not running or no sessions — fine, start fresh
+  }
+}
+
 // ── REST API ───────────────────────────────────────────────────────────────────
 
 app.get('/api/session', (req, res) => {
@@ -48,7 +119,6 @@ app.get('/api/session', (req, res) => {
 app.get('/api/browse', (req, res) => {
   let browsePath = req.query.path || os.homedir();
 
-  // Resolve ~
   if (browsePath.startsWith('~')) {
     browsePath = path.join(os.homedir(), browsePath.slice(1));
   }
@@ -73,11 +143,7 @@ app.get('/api/browse', (req, res) => {
       ? path.dirname(browsePath)
       : null;
 
-    res.json({
-      path: browsePath,
-      parent,
-      entries: [...dirs, ...hiddenDirs, ...files],
-    });
+    res.json({ path: browsePath, parent, entries: [...dirs, ...hiddenDirs, ...files] });
   } catch (err) {
     res.json({
       path: browsePath,
@@ -94,63 +160,36 @@ app.post('/api/session/start', (req, res) => {
   }
 
   const { cwd, cli } = req.body;
-
-  if (!cwd || !cli) {
-    return res.status(400).json({ error: 'Missing cwd or cli' });
-  }
-  if (!['claude', 'gemini'].includes(cli)) {
-    return res.status(400).json({ error: 'cli must be "claude" or "gemini"' });
-  }
+  if (!cwd || !cli) return res.status(400).json({ error: 'Missing cwd or cli' });
+  if (!['claude', 'gemini'].includes(cli)) return res.status(400).json({ error: 'cli must be "claude" or "gemini"' });
 
   try {
-    const stat = fs.statSync(cwd);
-    if (!stat.isDirectory()) {
-      return res.status(400).json({ error: 'cwd is not a directory' });
-    }
+    if (!fs.statSync(cwd).isDirectory()) return res.status(400).json({ error: 'cwd is not a directory' });
   } catch (err) {
     return res.status(400).json({ error: 'Invalid cwd: ' + err.message });
   }
 
-  const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
-  delete ptyEnv.CLAUDECODE; // prevent "nested session" error
-
-  ptyProcess = pty.spawn(cli, [], {
-    name: 'xterm-256color',
-    cols: 80,
-    rows: 24,
-    cwd,
-    env: ptyEnv,
-  });
-
-  sessionInfo = { active: true, cwd, cli };
-  scrollbackBuffer = Buffer.alloc(0);
-
-  // Notify all connected clients that a session is now live
-  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli }));
-
-  ptyProcess.onData(data => {
-    appendScrollback(data);
-    broadcast(data);
-  });
-
-  ptyProcess.onExit(() => {
-    sessionInfo = { active: false, cwd: null, cli: null };
-    ptyProcess = null;
-    broadcast(JSON.stringify({ type: 'state', active: false }));
-  });
-
+  spawnSession(cli, cwd);
   res.json({ ok: true });
 });
 
 app.post('/api/session/kill', (req, res) => {
-  if (ptyProcess) {
-    try { ptyProcess.kill(); } catch (_) {}
-    ptyProcess = null;
-  }
+  const cli = sessionInfo.cli;
+  const proc = ptyProcess;
+
+  // Null out first so onExit doesn't double-broadcast
+  ptyProcess = null;
   sessionInfo = { active: false, cwd: null, cli: null };
   scrollbackBuffer = Buffer.alloc(0);
+
   broadcast(JSON.stringify({ type: 'state', active: false }));
   res.json({ ok: true });
+
+  // Kill the tmux session (terminates the CLI running inside)
+  if (cli) exec(`tmux kill-session -t ${tmuxName(cli)}`, () => {});
+
+  // Also kill the pty attachment (belt-and-suspenders)
+  if (proc) try { proc.kill(); } catch (_) {}
 });
 
 // ── WebSocket server ───────────────────────────────────────────────────────────
@@ -159,7 +198,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', ws => {
-  // 1. Send current state immediately
+  // 1. Send current state
   ws.send(JSON.stringify({
     type: 'state',
     active: sessionInfo.active,
@@ -167,28 +206,24 @@ wss.on('connection', ws => {
     cli: sessionInfo.cli,
   }));
 
-  // 2. Replay scrollback if a session is live
+  // 2. Replay scrollback so the terminal catches up to current output
   if (sessionInfo.active && scrollbackBuffer.length > 0) {
     ws.send(scrollbackBuffer);
   }
 
   ws.on('message', message => {
     const raw = message.toString('binary');
-    // Try JSON control message first
     try {
       const msg = JSON.parse(raw);
       if (msg.type === 'resize' && ptyProcess) {
         const cols = Math.max(1, Math.round(msg.cols));
         const rows = Math.max(1, Math.round(msg.rows));
         ptyProcess.resize(cols, rows);
+        // tmux responds to SIGWINCH from the pty resize — no extra command needed
       }
       return;
-    } catch (_) {
-      // Not JSON — raw keyboard input
-    }
-    if (ptyProcess) {
-      ptyProcess.write(raw);
-    }
+    } catch (_) {}
+    if (ptyProcess) ptyProcess.write(raw);
   });
 
   ws.on('error', () => {});
@@ -203,6 +238,8 @@ setInterval(() => {
 }, 30000);
 
 // ── Start ──────────────────────────────────────────────────────────────────────
+
+restoreExistingSession();
 
 server.listen(PORT, () => {
   console.log(`Claude Terminal → http://localhost:${PORT}`);

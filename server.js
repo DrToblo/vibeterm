@@ -154,6 +154,21 @@ app.get('/api/browse', (req, res) => {
   }
 });
 
+app.post('/api/mkdir', (req, res) => {
+  const { path: dirPath } = req.body;
+  if (!dirPath) return res.status(400).json({ error: 'Missing path' });
+
+  const resolved = path.resolve(dirPath);
+  try {
+    fs.mkdirSync(resolved);
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err.code === 'EEXIST' ? 'Already exists' :
+                err.code === 'EACCES' ? 'Permission denied' : err.message;
+    res.status(400).json({ error: msg });
+  }
+});
+
 app.post('/api/session/start', (req, res) => {
   if (sessionInfo.active) {
     return res.status(409).json({ error: 'Session already active' });

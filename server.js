@@ -33,7 +33,13 @@ function clearLastSession() {
 }
 
 function appendScrollback(data) {
-  const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data, 'binary');
+  // Strip DA1/DA2 response sequences (ESC [ ? ... c / ESC [ > ... c) that get
+  // echoed back into PTY output via terminal echo mode — they appear as garbage
+  // text when the scrollback is replayed to a fresh xterm.js instance.
+  const str = Buffer.isBuffer(data) ? data.toString('binary') : data;
+  const filtered = str.replace(/\x1b\[[?>\d;]*c/g, '');
+  const chunk = Buffer.from(filtered, 'binary');
+  if (!chunk.length) return;
   const combined = Buffer.concat([scrollbackBuffer, chunk]);
   scrollbackBuffer = combined.length > SCROLLBACK_MAX
     ? combined.slice(combined.length - SCROLLBACK_MAX)

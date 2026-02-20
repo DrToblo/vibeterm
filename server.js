@@ -19,8 +19,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Session state ──────────────────────────────────────────────────────────────
 
 let ptyProcess = null;
-let sessionInfo = { active: false, cwd: null, cli: null };
+let sessionInfo = { active: false, cwd: null, cli: null, sessionName: null, sessionType: null };
 let scrollbackBuffer = Buffer.alloc(0);
+
+const LAST_SESSION_FILE = path.join(__dirname, '.last-session.json');
+
+function saveLastSession(info) {
+  try { fs.writeFileSync(LAST_SESSION_FILE, JSON.stringify(info)); } catch (_) {}
+}
+
+function clearLastSession() {
+  try { fs.unlinkSync(LAST_SESSION_FILE); } catch (_) {}
+}
 
 function appendScrollback(data) {
   const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data, 'binary');
@@ -60,10 +70,11 @@ function spawnSession(cli, cwd) {
   });
 
   ptyProcess = proc;
-  sessionInfo = { active: true, cwd, cli };
+  sessionInfo = { active: true, cwd, cli, sessionName: null, sessionType: 'managed' };
   scrollbackBuffer = Buffer.alloc(0);
 
-  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli }));
+  saveLastSession({ sessionType: 'managed', cli, cwd });
+  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli, sessionType: 'managed' }));
 
   proc.onData(data => {
     appendScrollback(data);
@@ -73,17 +84,73 @@ function spawnSession(cli, cwd) {
   proc.onExit(() => {
     // Only update state if this is still the active process (not superseded by kill)
     if (ptyProcess === proc) {
-      sessionInfo = { active: false, cwd: null, cli: null };
+      sessionInfo = { active: false, cwd: null, cli: null, sessionName: null, sessionType: null };
       ptyProcess = null;
+      clearLastSession();
       broadcast(JSON.stringify({ type: 'state', active: false }));
     }
   });
 }
 
-// On server startup: reattach to any surviving vibeterm tmux session
+function attachSession(sessionName) {
+  const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
+  delete ptyEnv.CLAUDECODE;
+
+  const proc = pty.spawn('tmux', [
+    'attach-session', '-t', sessionName,
+  ], {
+    name: 'xterm-256color',
+    cols: 80,
+    rows: 24,
+    cwd: os.homedir(),
+    env: ptyEnv,
+  });
+
+  ptyProcess = proc;
+  sessionInfo = { active: true, cwd: null, cli: null, sessionName, sessionType: 'custom' };
+  scrollbackBuffer = Buffer.alloc(0);
+
+  saveLastSession({ sessionType: 'custom', sessionName });
+  broadcast(JSON.stringify({ type: 'state', active: true, sessionName, sessionType: 'custom' }));
+
+  proc.onData(data => {
+    appendScrollback(data);
+    broadcast(data);
+  });
+
+  proc.onExit(() => {
+    if (ptyProcess === proc) {
+      sessionInfo = { active: false, cwd: null, cli: null, sessionName: null, sessionType: null };
+      ptyProcess = null;
+      clearLastSession();
+      broadcast(JSON.stringify({ type: 'state', active: false }));
+    }
+  });
+}
+
+// On server startup: reattach to any surviving session
 function restoreExistingSession() {
+  // 1. Try to restore from persisted last session
   try {
-    // list-panes -a gives session_name + pane cwd for every pane across all sessions
+    const saved = JSON.parse(fs.readFileSync(LAST_SESSION_FILE, 'utf8'));
+    if (saved.sessionType === 'custom' && saved.sessionName) {
+      const runningSessions = execSync(
+        'tmux list-sessions -F "#{session_name}"',
+        { encoding: 'utf8' }
+      ).trim().split('\n').filter(Boolean);
+
+      if (runningSessions.includes(saved.sessionName)) {
+        console.log(`Reattaching to custom tmux session: ${saved.sessionName}`);
+        attachSession(saved.sessionName);
+        return;
+      }
+    }
+  } catch (_) {
+    // no persist file or tmux not running — fall through
+  }
+
+  // 2. Fall back to looking for vibeterm-managed sessions
+  try {
     const output = execSync(
       'tmux list-panes -a -F "#{session_name}|#{pane_current_path}"',
       { encoding: 'utf8' }
@@ -99,7 +166,7 @@ function restoreExistingSession() {
 
       console.log(`Reattaching to existing tmux session: ${name} (${cwd})`);
       spawnSession(match[1], cwd);
-      break; // only restore one session at a time
+      break;
     }
   } catch (_) {
     // tmux not running or no sessions — fine, start fresh
@@ -110,9 +177,31 @@ function restoreExistingSession() {
 
 app.get('/api/session', (req, res) => {
   if (sessionInfo.active) {
-    res.json({ active: true, cwd: sessionInfo.cwd, cli: sessionInfo.cli });
+    res.json({
+      active: true,
+      cwd: sessionInfo.cwd,
+      cli: sessionInfo.cli,
+      sessionName: sessionInfo.sessionName,
+      sessionType: sessionInfo.sessionType,
+    });
   } else {
     res.json({ active: false });
+  }
+});
+
+app.get('/api/tmux-sessions', (req, res) => {
+  try {
+    const output = execSync(
+      'tmux list-sessions -F "#{session_name}|#{session_windows}"',
+      { encoding: 'utf8' }
+    ).trim();
+    const sessions = output.split('\n').filter(Boolean).map(line => {
+      const [name, windows] = line.split('|');
+      return { name, windows: parseInt(windows) || 1 };
+    });
+    res.json({ sessions });
+  } catch (_) {
+    res.json({ sessions: [] });
   }
 });
 
@@ -126,17 +215,20 @@ app.get('/api/browse', (req, res) => {
 
   try {
     const entries = fs.readdirSync(browsePath, { withFileTypes: true });
+    const statEntry = e => {
+      try { return fs.statSync(path.join(browsePath, e.name)).mtimeMs; } catch (_) { return 0; }
+    };
     const dirs = entries
       .filter(e => e.isDirectory() && !e.name.startsWith('.'))
-      .map(e => ({ name: e.name, type: 'dir' }))
+      .map(e => ({ name: e.name, type: 'dir', mtime: statEntry(e) }))
       .sort((a, b) => a.name.localeCompare(b.name));
     const hiddenDirs = entries
       .filter(e => e.isDirectory() && e.name.startsWith('.'))
-      .map(e => ({ name: e.name, type: 'dir' }))
+      .map(e => ({ name: e.name, type: 'dir', mtime: statEntry(e) }))
       .sort((a, b) => a.name.localeCompare(b.name));
     const files = entries
       .filter(e => e.isFile())
-      .map(e => ({ name: e.name, type: 'file' }))
+      .map(e => ({ name: e.name, type: 'file', mtime: statEntry(e) }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const parent = path.dirname(browsePath) !== browsePath
@@ -174,7 +266,14 @@ app.post('/api/session/start', (req, res) => {
     return res.status(409).json({ error: 'Session already active' });
   }
 
-  const { cwd, cli } = req.body;
+  const { cwd, cli, sessionName } = req.body;
+
+  // Attach to a custom (pre-existing) tmux session
+  if (sessionName) {
+    attachSession(String(sessionName));
+    return res.json({ ok: true });
+  }
+
   if (!cwd || !cli) return res.status(400).json({ error: 'Missing cwd or cli' });
   if (!['claude', 'gemini'].includes(cli)) return res.status(400).json({ error: 'cli must be "claude" or "gemini"' });
 
@@ -188,22 +287,42 @@ app.post('/api/session/start', (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/session/kill', (req, res) => {
-  const cli = sessionInfo.cli;
+// Detach: disconnect PTY but leave the tmux session running
+app.post('/api/session/detach', (req, res) => {
   const proc = ptyProcess;
 
-  // Null out first so onExit doesn't double-broadcast
   ptyProcess = null;
-  sessionInfo = { active: false, cwd: null, cli: null };
+  sessionInfo = { active: false, cwd: null, cli: null, sessionName: null, sessionType: null };
   scrollbackBuffer = Buffer.alloc(0);
+  clearLastSession();
 
   broadcast(JSON.stringify({ type: 'state', active: false }));
   res.json({ ok: true });
 
-  // Kill the tmux session (terminates the CLI running inside)
-  if (cli) exec(`tmux kill-session -t ${tmuxName(cli)}`, () => {});
+  if (proc) try { proc.kill(); } catch (_) {}
+});
 
-  // Also kill the pty attachment (belt-and-suspenders)
+// Kill: terminate the tmux session entirely
+app.post('/api/session/kill', (req, res) => {
+  const { cli, sessionName, sessionType } = sessionInfo;
+  const proc = ptyProcess;
+
+  // Null out first so onExit doesn't double-broadcast
+  ptyProcess = null;
+  sessionInfo = { active: false, cwd: null, cli: null, sessionName: null, sessionType: null };
+  scrollbackBuffer = Buffer.alloc(0);
+  clearLastSession();
+
+  broadcast(JSON.stringify({ type: 'state', active: false }));
+  res.json({ ok: true });
+
+  // Kill the appropriate tmux session
+  if (sessionType === 'custom' && sessionName) {
+    exec(`tmux kill-session -t "${sessionName}"`, () => {});
+  } else if (cli) {
+    exec(`tmux kill-session -t ${tmuxName(cli)}`, () => {});
+  }
+
   if (proc) try { proc.kill(); } catch (_) {}
 });
 
@@ -219,6 +338,8 @@ wss.on('connection', ws => {
     active: sessionInfo.active,
     cwd: sessionInfo.cwd,
     cli: sessionInfo.cli,
+    sessionName: sessionInfo.sessionName,
+    sessionType: sessionInfo.sessionType,
   }));
 
   // 2. Replay scrollback so the terminal catches up to current output

@@ -4,7 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#111111">
-  <title>claude</title>
+  <title>clive</title>
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -108,22 +119,32 @@
     }
     #path-display {
       font-size: 16px;
-      color: #F0EDE8;
+      color: #74B3FF;
       font-family: var(--font-mono);
     }
     #mkdir-btn {
-      background: none;
-      border: none;
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 700;
-      color: #F0EDE8;
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(22, 22, 22, 0.97);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
       cursor: pointer;
-      transition: color 0.15s;
-      letter-spacing: -0.03em;
+      transition: color 0.08s, transform 0.08s, background 0.08s;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
     }
-    #mkdir-btn:hover { color: #FFFFFF; }
+    #mkdir-btn:active {
+      background: var(--accent);
+      color: #fff;
+      transform: scale(0.88);
+    }
 
     /* ── Directory Browser ── */
     #browser-list {
@@ -137,7 +158,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 12px;
+      padding: 8px 12px;
       cursor: pointer;
       font-family: var(--font-mono);
       color: var(--text-primary);
@@ -153,30 +174,26 @@
     }
     .browser-entry:active { background: rgba(255,255,255,0.05); }
     .browser-entry.file { cursor: default; }
-    .entry-left { display: flex; align-items: center; gap: 16px; }
-    .entry-icon {
-      color: #F0EDE8;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      transition: color 0.15s;
-    }
+    .entry-left { display: flex; align-items: center; }
     .entry-name {
       font-size: 16px;
-      color: #F0EDE8;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .browser-entry.file .entry-name { color: #F0EDE8; }
+    /* terminal-style coloring: dirs = bold blue, files = default, parent = dim */
+    .browser-entry.dir   .entry-name { color: #74B3FF; font-weight: 500; }
+    .browser-entry.file  .entry-name { color: #CCCCCC; }
+    .browser-entry.parent .entry-name { color: #74B3FF; font-weight: 500; }
     .entry-meta {
-      font-size: 11px;
-      color: rgba(102,102,102,0.4);
-      text-transform: uppercase;
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      font-size: 16px;
+      font-weight: 400;
       flex-shrink: 0;
+      white-space: nowrap;
     }
+    .browser-entry.dir   .entry-meta { color: #74B3FF; }
+    .browser-entry.file  .entry-meta { color: #CCCCCC; }
+    .browser-entry.parent .entry-meta { color: #74B3FF; }
 
     .browser-loading, .browser-error {
       padding: 20px 12px;
@@ -185,6 +202,50 @@
       color: var(--text-secondary);
     }
     .browser-error { color: var(--status-red); }
+
+    /* ── Session Cards (tmux mode) ── */
+    .session-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 12px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      background: none;
+      border: none;
+      border-radius: 8px;
+      width: 100%;
+      text-align: left;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .session-card:active { background: rgba(255,255,255,0.05); }
+    .session-card.selected {
+      background: rgba(161,74,54,0.12);
+      outline: 1px solid rgba(161,74,54,0.35);
+      outline-offset: -1px;
+    }
+    .session-card-name { font-size: 16px; color: #F0EDE8; }
+    .session-card-meta {
+      font-size: 11px;
+      color: rgba(102,102,102,0.5);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .sessions-empty {
+      padding: 40px 12px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Detach button (shown only for custom sessions) ── */
+    #detach-btn { display: none; }
+    #detach-btn:hover { border-color: #4D9EFF; color: #4D9EFF; }
     .browser-spinner {
       display: inline-block;
       width: 14px; height: 14px;
@@ -204,7 +265,9 @@
       width: 100%;
       padding: 0 24px;
       display: flex;
+      align-items: center;
       justify-content: center;
+      gap: 10px;
       z-index: 20;
     }
     #bottom-bar-inner {
@@ -700,7 +763,6 @@
 
     <div id="path-row">
       <span id="path-display">/</span>
-      <button id="mkdir-btn">mkdir</button>
     </div>
   </div>
 
@@ -717,9 +779,18 @@
         <button class="runner-btn" data-cli="gemini">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9961 24C12.1818 17.5091 17.2917 12.1818 24 11.9961C17.2917 11.8105 12.1818 6.49132 11.9961 0C11.8105 6.49132 6.69229 11.8105 0 11.9961C6.69229 12.1818 11.8105 17.5091 11.9961 24Z"/></svg>
         </button>
+        <button class="runner-btn" data-cli="tmux">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </button>
       </div>
       <button id="start-btn">INITIALIZE</button>
     </div>
+    <button id="mkdir-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+      </svg>
+    </button>
   </div>
 
 </div>
@@ -745,12 +816,13 @@
 <div id="terminal-view" class="hidden">
 
   <header id="header">
-    <div class="header-wordmark">claude</div>
+    <div class="header-wordmark" id="header-wordmark">claude</div>
     <div class="header-right">
-      <div class="status-pill">
+      <div class="status-pill" id="status-pill">
         <div class="status-dot red" id="status-dot"></div>
         <span id="status-text">Disconnected</span>
       </div>
+      <button class="kill-btn" id="detach-btn">↩ Detach</button>
       <button class="kill-btn" id="kill-btn">✕ End Session</button>
     </div>
   </header>
@@ -822,6 +894,7 @@
 const state = {
   browsePath: '',
   selectedCli: 'claude',
+  selectedSession: null,
   sessionActive: false,
   wsConnected: false,
   ws: null,
@@ -845,6 +918,9 @@ const startBtn         = $('start-btn');
 const statusDot        = $('status-dot');
 const statusText       = $('status-text');
 const killBtn          = $('kill-btn');
+const detachBtn        = $('detach-btn');
+const headerWordmark   = $('header-wordmark');
+const statusPill       = $('status-pill');
 const reconnectOverlay = $('reconnect-overlay');
 const mobileToolbar    = $('mobile-toolbar');
 const mobileInput      = $('mobile-input');
@@ -1044,13 +1120,23 @@ async function connect() {
     if (msg.type === 'state') {
       state.sessionActive = msg.active;
       if (msg.active) {
+        updateHeaderForSession(msg.sessionType, msg.sessionName, msg.cli);
         showTerminal();
       } else {
+        resetHeader();
         showLaunch();
         term.clear();
         resetKillBtn();
-        startBtn.disabled = false;
-        startBtn.textContent = 'INITIALIZE';
+        // Reset launch controls based on current mode
+        if (state.selectedCli === 'tmux') {
+          state.selectedSession = null;
+          startBtn.disabled = true;
+          startBtn.textContent = 'ATTACH';
+          loadSessions();
+        } else {
+          startBtn.disabled = false;
+          startBtn.textContent = 'INITIALIZE';
+        }
       }
     }
   });
@@ -1102,8 +1188,71 @@ setInterval(() => {
   forceReconnect();
 }, 3000);
 
+// ── Header state ───────────────────────────────────────────────────────────────
+function updateHeaderForSession(sessionType, sessionName, cli) {
+  if (sessionType === 'custom') {
+    headerWordmark.textContent = sessionName || 'tmux';
+    statusPill.style.display = 'none';
+    detachBtn.style.display = '';
+  } else {
+    headerWordmark.textContent = cli || 'claude';
+    statusPill.style.display = '';
+    detachBtn.style.display = 'none';
+  }
+}
+
+function resetHeader() {
+  headerWordmark.textContent = state.selectedCli === 'tmux' ? 'tmux' : (state.selectedCli || 'claude');
+  statusPill.style.display = '';
+  detachBtn.style.display = 'none';
+}
+
+// ── Session List (tmux mode) ────────────────────────────────────────────────────
+async function loadSessions() {
+  pathDisplay.textContent = 'tmux sessions';
+  $('mkdir-btn').style.display = 'none';
+  state.selectedSession = null;
+  startBtn.disabled = true;
+  startBtn.textContent = 'ATTACH';
+
+  browserList.innerHTML = '<div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>';
+  let data;
+  try {
+    const resp = await fetch('/api/tmux-sessions');
+    data = await resp.json();
+  } catch (err) {
+    browserList.innerHTML = `<div class="browser-error">Network error: ${err.message}</div>`;
+    return;
+  }
+
+  if (!data.sessions || data.sessions.length === 0) {
+    browserList.innerHTML = '<div class="sessions-empty">No tmux sessions running</div>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for (const session of data.sessions) {
+    const card = document.createElement('button');
+    card.className = 'session-card';
+    card.innerHTML = `
+      <span class="session-card-name">${session.name}</span>
+      <span class="session-card-meta">${session.windows} win</span>
+    `;
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      state.selectedSession = session.name;
+      startBtn.disabled = false;
+    });
+    frag.appendChild(card);
+  }
+  browserList.innerHTML = '';
+  browserList.appendChild(frag);
+}
+
 // ── Directory Browser ──────────────────────────────────────────────────────────
 async function browse(dirPath) {
+  $('mkdir-btn').style.display = '';
   browserList.innerHTML = '<div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>';
   let data;
   try {
@@ -1122,10 +1271,10 @@ async function browse(dirPath) {
   renderBreadcrumb(data.path);
 
   const frag = document.createDocumentFragment();
-  if (data.parent) frag.appendChild(makeEntryRow('parent', '↩', '..', data.parent));
+  if (data.parent) frag.appendChild(makeEntryRow('parent', '↩', '..', data.parent, null));
   for (const e of data.entries) {
     const full = data.path.replace(/\/$/, '') + '/' + e.name;
-    frag.appendChild(makeEntryRow(e.type, e.type === 'dir' ? '📁' : '📄', e.name, e.type === 'dir' ? full : null));
+    frag.appendChild(makeEntryRow(e.type, null, e.name, e.type === 'dir' ? full : null, e.mtime));
   }
   if (!data.entries.length && !data.parent) {
     const msg = document.createElement('div');
@@ -1137,28 +1286,43 @@ async function browse(dirPath) {
   browserList.appendChild(frag);
 }
 
-const ICON_FOLDER = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>`;
-const ICON_FILE   = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-const ICON_UP     = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="14 9 9 4 4 9"/><path d="M20 20h-7a4 4 0 0 1-4-4V4"/></svg>`;
+function fmtMtime(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  const now = new Date();
+  const diffDays = (now - d) / 86400000;
+  if (diffDays < 1 && now.getDate() === d.getDate()) {
+    // today: show time
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  if (diffDays < 365) {
+    // within a year: show month + day
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+  // older: show year
+  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
-function makeEntryRow(type, _icon, name, targetPath) {
+function makeEntryRow(type, _icon, name, targetPath, mtime) {
   const row = document.createElement('button');
   row.className = `browser-entry ${type}`;
 
   const left = document.createElement('div');
   left.className = 'entry-left';
 
-  const ic = document.createElement('span');
-  ic.className = 'entry-icon';
-  ic.innerHTML = type === 'parent' ? ICON_UP : type === 'dir' ? ICON_FOLDER : ICON_FILE;
-
   const nm = document.createElement('span');
   nm.className = 'entry-name';
   nm.textContent = name;
 
-  left.appendChild(ic);
   left.appendChild(nm);
   row.appendChild(left);
+
+  if (mtime) {
+    const meta = document.createElement('span');
+    meta.className = 'entry-meta';
+    meta.textContent = fmtMtime(mtime);
+    row.appendChild(meta);
+  }
 
   if (targetPath) {
     row.addEventListener('click', () => browse(targetPath));
@@ -1178,31 +1342,68 @@ document.querySelectorAll('.runner-btn').forEach(btn => {
     document.querySelectorAll('.runner-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.selectedCli = btn.dataset.cli;
+    state.selectedSession = null;
+
+    if (state.selectedCli === 'tmux') {
+      loadSessions();
+    } else {
+      startBtn.disabled = false;
+      startBtn.textContent = 'INITIALIZE';
+      browse(state.browsePath || '');
+    }
   });
 });
 
 // ── Start Session ──────────────────────────────────────────────────────────────
 startBtn.addEventListener('click', async () => {
-  if (!state.browsePath) return;
-  startBtn.disabled = true;
-  startBtn.textContent = 'INITIALIZING…';
-  try {
-    const resp = await fetch('/api/session/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cwd: state.browsePath, cli: state.selectedCli }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      alert(data.error || 'Failed to start session');
+  if (state.selectedCli === 'tmux') {
+    if (!state.selectedSession) return;
+    startBtn.disabled = true;
+    startBtn.textContent = 'ATTACHING…';
+    try {
+      const resp = await fetch('/api/session/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionName: state.selectedSession }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to attach to session');
+        startBtn.disabled = false;
+        startBtn.textContent = 'ATTACH';
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+      startBtn.disabled = false;
+      startBtn.textContent = 'ATTACH';
+    }
+  } else {
+    if (!state.browsePath) return;
+    startBtn.disabled = true;
+    startBtn.textContent = 'INITIALIZING…';
+    try {
+      const resp = await fetch('/api/session/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cwd: state.browsePath, cli: state.selectedCli }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to start session');
+        startBtn.disabled = false;
+        startBtn.textContent = 'INITIALIZE';
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
       startBtn.disabled = false;
       startBtn.textContent = 'INITIALIZE';
     }
-  } catch (err) {
-    alert('Network error: ' + err.message);
-    startBtn.disabled = false;
-    startBtn.textContent = 'INITIALIZE';
   }
+});
+
+// ── Detach Session ─────────────────────────────────────────────────────────────
+detachBtn.addEventListener('click', async () => {
+  try { await fetch('/api/session/detach', { method: 'POST' }); } catch (_) {}
 });
 
 // ── Kill Session ───────────────────────────────────────────────────────────────

@@ -48,18 +48,24 @@ function broadcast(data) {
 
 // ── tmux session management ────────────────────────────────────────────────────
 
-function tmuxName(cli) {
-  return `vibeterm-${cli}`;
+function tmuxName(cli, cwd) {
+  const folder = path.basename(cwd)
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'session';
+  return `${folder}-${cli}`;
 }
 
 function spawnSession(cli, cwd) {
   const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
   delete ptyEnv.CLAUDECODE;
 
+  const sessionName = tmuxName(cli, cwd);
+
   // new-session -A: attach if session exists, create if not
   const proc = pty.spawn('tmux', [
     'new-session', '-A',
-    '-s', tmuxName(cli),
+    '-s', sessionName,
     cli,
   ], {
     name: 'xterm-256color',
@@ -70,11 +76,11 @@ function spawnSession(cli, cwd) {
   });
 
   ptyProcess = proc;
-  sessionInfo = { active: true, cwd, cli, sessionName: null, sessionType: 'managed' };
+  sessionInfo = { active: true, cwd, cli, sessionName, sessionType: 'managed' };
   scrollbackBuffer = Buffer.alloc(0);
 
-  saveLastSession({ sessionType: 'managed', cli, cwd });
-  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli, sessionType: 'managed' }));
+  saveLastSession({ sessionType: 'managed', cli, cwd, sessionName });
+  broadcast(JSON.stringify({ type: 'state', active: true, cwd, cli, sessionName, sessionType: 'managed' }));
 
   proc.onData(data => {
     appendScrollback(data);
@@ -133,15 +139,20 @@ function restoreExistingSession() {
   // 1. Try to restore from persisted last session
   try {
     const saved = JSON.parse(fs.readFileSync(LAST_SESSION_FILE, 'utf8'));
-    if (saved.sessionType === 'custom' && saved.sessionName) {
+    if (saved.sessionName) {
       const runningSessions = execSync(
         'tmux list-sessions -F "#{session_name}"',
         { encoding: 'utf8' }
       ).trim().split('\n').filter(Boolean);
 
       if (runningSessions.includes(saved.sessionName)) {
-        console.log(`Reattaching to custom tmux session: ${saved.sessionName}`);
-        attachSession(saved.sessionName);
+        if (saved.sessionType === 'managed' && saved.cli && saved.cwd) {
+          console.log(`Reattaching to managed tmux session: ${saved.sessionName}`);
+          spawnSession(saved.cli, saved.cwd);
+        } else {
+          console.log(`Reattaching to custom tmux session: ${saved.sessionName}`);
+          attachSession(saved.sessionName);
+        }
         return;
       }
     }
@@ -161,7 +172,7 @@ function restoreExistingSession() {
       if (pipe === -1) continue;
       const name = line.slice(0, pipe);
       const cwd  = line.slice(pipe + 1) || os.homedir();
-      const match = name.match(/^vibeterm-(claude|gemini)$/);
+      const match = name.match(/^.+-(claude|gemini)$/);
       if (!match) continue;
 
       console.log(`Reattaching to existing tmux session: ${name} (${cwd})`);
@@ -317,10 +328,8 @@ app.post('/api/session/kill', (req, res) => {
   res.json({ ok: true });
 
   // Kill the appropriate tmux session
-  if (sessionType === 'custom' && sessionName) {
+  if (sessionName) {
     exec(`tmux kill-session -t "${sessionName}"`, () => {});
-  } else if (cli) {
-    exec(`tmux kill-session -t ${tmuxName(cli)}`, () => {});
   }
 
   if (proc) try { proc.kill(); } catch (_) {}

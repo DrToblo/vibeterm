@@ -32,6 +32,7 @@
   <style>
     /* ── Variables ── */
     :root {
+      /* Dark theme (terminal view) */
       --bg-primary:    #111111;
       --bg-secondary:  #1A1A1A;
       --bg-card:       #161616;
@@ -43,11 +44,20 @@
       --status-green:  #30A46C;
       --status-red:    #E5484D;
       --status-amber:  #F76B15;
-      --font-ui:       'JetBrains Mono', 'Fira Code', monospace;
+      --font-ui:       'DM Sans', 'JetBrains Mono', sans-serif;
       --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
       --header-h:      52px;
-      --pill-h:        52px;   /* toolbar pill height */
-      --pill-gap:      10px;   /* gap between pill and screen edge */
+      --pill-h:        52px;
+      --pill-gap:      10px;
+      /* Light theme (launch screen) */
+      --launch-bg:        #FFFFFF;
+      --launch-bg2:       #F8F9FA;
+      --launch-border:    #DADCE0;
+      --launch-text:      #202124;
+      --launch-text2:     #5F6368;
+      --launch-accent:    #A14A36;
+      --launch-accent-h:  #8B3E2D;
+      --launch-accent-lt: #FFF2F0;
     }
 
     /* ── Reset ── */
@@ -72,9 +82,11 @@
     #launch-screen {
       display: flex;
       flex-direction: column;
-      background: #0C0B09;
+      background: var(--launch-bg);
+      color: var(--launch-text);
       z-index: 10;
       overflow: hidden;
+      font-family: var(--font-ui);
     }
     #terminal-view {
       display: flex;
@@ -84,26 +96,17 @@
     }
     .hidden { opacity: 0; pointer-events: none; }
 
-    /* ── CLIVE Logo ── */
-    .clive-logo {
-      font-size: 10px;
-      line-height: 1.2;
-      pointer-events: none;
-      user-select: none;
-      letter-spacing: -0.05em;
-      filter: drop-shadow(0 0 12px rgba(85,107,47,0.2));
-    }
-    .clive-logo .logo-cli { color: #556B2F; }
-    .clive-logo .logo-ve  { color: #A14A36; }
-    .clive-logo .flex-row { display: flex; white-space: pre; }
 
-    /* ── Launch Header ── */
+    /* ══════════════════════════════════════════════════
+       LAUNCH SCREEN — Light theme
+    ══════════════════════════════════════════════════ */
+
+    /* ── Launch Header (sticky) ── */
     #launch-header {
       flex-shrink: 0;
-      padding: 40px 24px 16px;
-      background: rgba(10,10,10,0.9);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      padding: 40px 24px 0;
+      background: var(--launch-bg);
+      border-bottom: 1px solid var(--launch-border);
       display: flex;
       flex-direction: column;
       gap: 24px;
@@ -111,46 +114,71 @@
       top: 0;
       z-index: 10;
     }
-    #path-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-    }
-    #path-display {
-      font-size: 16px;
-      color: #74B3FF;
+
+    /* ── CLIVE Logo ── */
+    #clive-logo {
+      font-size: 10px;
+      line-height: 1.1;
       font-family: var(--font-mono);
+      letter-spacing: -0.04em;
+      pointer-events: none;
+      user-select: none;
+      white-space: pre;
     }
-    #mkdir-btn {
-      flex-shrink: 0;
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: rgba(22, 22, 22, 0.97);
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    @media (min-width: 400px) { #clive-logo { font-size: 11px; } }
+    .logo-cli { color: #A14A36; }
+    .logo-ve  { color: #D18B7A; }
+
+    /* ── Tab Switcher ── */
+    #tab-switcher {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
+      gap: 32px;
+    }
+    .tab-btn {
+      padding-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--launch-text2);
+      background: none;
+      border: none;
       cursor: pointer;
-      transition: color 0.08s, transform 0.08s, background 0.08s;
+      position: relative;
+      transition: color 0.15s;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       user-select: none;
+      font-family: var(--font-ui);
     }
-    #mkdir-btn:active {
-      background: var(--accent);
-      color: #fff;
-      transform: scale(0.88);
+    .tab-btn:hover { color: var(--launch-text); }
+    .tab-btn.active { color: var(--launch-accent); }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--launch-accent);
+      border-radius: 3px 3px 0 0;
     }
 
-    /* ── Directory Browser ── */
+    /* ── Path Row ── */
+    #path-row {
+      flex-shrink: 0;
+      padding: 16px 24px;
+    }
+    #path-display {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--launch-text2);
+      font-family: var(--font-mono);
+    }
+
+    /* ── Browser List ── */
     #browser-list {
       flex: 1;
       overflow-y: auto;
-      padding: 0 16px 140px;
+      padding: 0 16px 160px;
     }
     #browser-list::-webkit-scrollbar { display: none; }
 
@@ -158,134 +186,193 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 12px;
+      padding: 12px 16px;
       cursor: pointer;
-      font-family: var(--font-mono);
-      color: var(--text-primary);
+      color: var(--launch-text);
       transition: background 0.1s;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       background: none;
       border: none;
-      border-radius: 8px;
+      border-radius: 16px;
       width: 100%;
       text-align: left;
     }
-    .browser-entry:active { background: rgba(255,255,255,0.05); }
-    .browser-entry.file { cursor: default; }
-    .entry-left { display: flex; align-items: center; }
+    .browser-entry:active { background: var(--launch-bg2); }
+    .browser-entry:hover  { background: var(--launch-bg2); }
+    .browser-entry.file   { cursor: default; }
+
+    .entry-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      min-width: 0;
+    }
+    .entry-icon {
+      flex-shrink: 0;
+      color: var(--launch-text2);
+      transition: color 0.1s;
+      display: flex;
+      align-items: center;
+    }
+    .browser-entry:hover .entry-icon { color: var(--launch-accent); }
+    .entry-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
     .entry-name {
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--launch-text);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-family: var(--font-ui);
     }
-    /* terminal-style coloring: dirs = bold blue, files = default, parent = dim */
-    .browser-entry.dir   .entry-name { color: #74B3FF; font-weight: 500; }
-    .browser-entry.file  .entry-name { color: #CCCCCC; }
-    .browser-entry.parent .entry-name { color: #74B3FF; font-weight: 500; }
     .entry-meta {
-      font-size: 16px;
-      font-weight: 400;
-      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--launch-text2);
+      opacity: 0.7;
+      font-family: var(--font-mono);
       white-space: nowrap;
     }
-    .browser-entry.dir   .entry-meta { color: #74B3FF; }
-    .browser-entry.file  .entry-meta { color: #CCCCCC; }
-    .browser-entry.parent .entry-meta { color: #74B3FF; }
 
     .browser-loading, .browser-error {
       padding: 20px 12px;
       text-align: center;
       font-size: 13px;
-      color: var(--text-secondary);
+      color: var(--launch-text2);
     }
     .browser-error { color: var(--status-red); }
-
-    /* ── Session Cards (tmux mode) ── */
-    .session-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 12px;
-      cursor: pointer;
-      font-family: var(--font-mono);
-      background: none;
-      border: none;
-      border-radius: 8px;
-      width: 100%;
-      text-align: left;
-      transition: background 0.1s;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      user-select: none;
-    }
-    .session-card:active { background: rgba(255,255,255,0.05); }
-    .session-card.selected {
-      background: rgba(161,74,54,0.12);
-      outline: 1px solid rgba(161,74,54,0.35);
-      outline-offset: -1px;
-    }
-    .session-card-name { font-size: 16px; color: #F0EDE8; }
-    .session-card-meta {
-      font-size: 11px;
-      color: rgba(102,102,102,0.5);
-      text-transform: uppercase;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
-    .sessions-empty {
-      padding: 40px 12px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    /* ── Detach button (shown only for custom sessions) ── */
-    #detach-btn { display: none; }
-    #detach-btn:hover { border-color: #4D9EFF; color: #4D9EFF; }
     .browser-spinner {
       display: inline-block;
       width: 14px; height: 14px;
-      border: 2px solid #2A2A2A;
-      border-top-color: var(--accent);
+      border: 2px solid var(--launch-border);
+      border-top-color: var(--launch-accent);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       vertical-align: middle;
       margin-right: 6px;
     }
 
-    /* ── Bottom Launch Bar ── */
-    #bottom-bar {
-      position: fixed;
-      bottom: 32px;
-      left: 0;
+    /* ── Session Cards (tmux mode) ── */
+    .session-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-radius: 16px;
       width: 100%;
-      padding: 0 24px;
+      text-align: left;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      color: var(--launch-text);
+    }
+    .session-card:hover  { background: var(--launch-bg2); }
+    .session-card:active { background: var(--launch-bg2); }
+    .session-card.selected {
+      background: var(--launch-accent-lt);
+      outline: 1px solid rgba(161,74,54,0.35);
+      outline-offset: -1px;
+    }
+    .session-card-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      min-width: 0;
+    }
+    .session-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--launch-bg2);
+      color: var(--launch-text2);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      transition: background 0.1s, color 0.1s;
+    }
+    .session-card.selected .session-icon,
+    .session-card:hover .session-icon {
+      background: var(--launch-accent-lt);
+      color: var(--launch-accent);
+    }
+    .session-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .session-card-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--launch-text);
+      font-family: var(--font-ui);
+    }
+    .session-card-meta {
+      font-size: 12px;
+      color: var(--launch-text2);
+      opacity: 0.7;
+      font-family: var(--font-mono);
+    }
+    .session-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--launch-accent-lt);
+      color: var(--launch-accent);
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+    .sessions-empty {
+      padding: 40px 12px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--launch-text2);
+      font-family: var(--font-ui);
+    }
+
+    /* ── Bottom Launch Bar ── */
+    #bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
       z-index: 20;
+      pointer-events: none;
+      /* Fade gradient */
+      background: linear-gradient(to top, #ffffff 60%, rgba(255,255,255,0.9) 85%, transparent 100%);
+      padding: 24px 24px 32px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
     #bottom-bar-inner {
-      background: rgba(18,18,18,0.95);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 6px;
+      background: #ffffff;
+      border: 1px solid var(--launch-border);
+      padding: 8px;
       border-radius: 999px;
       display: flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      box-shadow: 0 1px 2px rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
       width: 100%;
-      max-width: 340px;
+      max-width: 380px;
+      pointer-events: auto;
     }
     .runner-toggle {
       display: flex;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--launch-bg2);
+      border: 1px solid var(--launch-border);
       border-radius: 999px;
       padding: 4px;
       gap: 4px;
@@ -301,22 +388,22 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      opacity: 0.3;
+      opacity: 0.4;
       transition: all 0.15s;
       -webkit-tap-highlight-color: transparent;
-      color: #ffffff;
+      color: var(--launch-text);
     }
-    .runner-btn:hover { opacity: 0.6; }
+    .runner-btn:hover { opacity: 0.7; }
     .runner-btn.active {
-      background: #A14A36;
+      background: var(--launch-accent);
       color: #ffffff;
       opacity: 1;
-      box-shadow: 0 0 15px rgba(161,74,54,0.4);
+      box-shadow: 0 2px 8px rgba(161,74,54,0.35);
     }
     #start-btn {
       flex: 1;
       height: 48px;
-      background: #A14A36;
+      background: var(--launch-accent);
       color: #ffffff;
       border: none;
       border-radius: 999px;
@@ -328,17 +415,49 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
       letter-spacing: 0.04em;
-      box-shadow: 0 0 20px rgba(161,74,54,0.2);
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 12px;
     }
-    #start-btn:hover { background: #8C3F2E; }
+    #start-btn:hover { background: var(--launch-accent-h); }
     #start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #start-btn:active:not(:disabled) { transform: scale(0.99); }
+
+    /* ── Mkdir Floating Button ── */
+    #mkdir-btn {
+      position: fixed;
+      display: none; /* shown by JS only in remote tab on launch screen */
+      bottom: 112px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid var(--launch-border);
+      box-shadow: 0 1px 2px rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--launch-accent);
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.08s;
+      z-index: 21;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    #mkdir-btn:hover {
+      box-shadow: 0 4px 12px rgba(60,64,67,0.25), 0 2px 6px rgba(60,64,67,0.15);
+    }
+    #mkdir-btn:active { transform: scale(0.93); }
 
     /* ── Mkdir Modal ── */
     #mkdir-scrim {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.4);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       z-index: 70;
@@ -357,15 +476,16 @@
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease;
       z-index: 71;
-      background: #131210;
-      border: 1px solid #2A2826;
-      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid var(--launch-border);
+      border-radius: 20px;
       padding: 24px;
       width: calc(100% - 48px);
       max-width: 320px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      box-shadow: 0 8px 32px rgba(60,64,67,0.18);
     }
     #mkdir-modal.open {
       opacity: 1;
@@ -375,24 +495,25 @@
     #mkdir-modal-title {
       font-size: 13px;
       font-weight: 700;
-      color: #7A7570;
+      color: var(--launch-text2);
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      font-family: var(--font-ui);
     }
     #mkdir-input {
       width: 100%;
-      background: #0C0B09;
-      border: 1px solid #2A2826;
-      border-radius: 8px;
+      background: var(--launch-bg2);
+      border: 1px solid var(--launch-border);
+      border-radius: 10px;
       padding: 12px 14px;
       font-family: var(--font-mono);
       font-size: 15px;
-      color: #F0EDE8;
+      color: var(--launch-text);
       outline: none;
       transition: border-color 0.15s;
     }
-    #mkdir-input:focus { border-color: #556B2F; }
-    #mkdir-input::placeholder { color: #3A3835; }
+    #mkdir-input:focus { border-color: var(--launch-accent); }
+    #mkdir-input::placeholder { color: var(--launch-border); }
     .mkdir-actions {
       display: flex;
       gap: 8px;
@@ -402,24 +523,25 @@
       height: 44px;
       border-radius: 999px;
       border: none;
-      font-family: var(--font-mono);
+      font-family: var(--font-ui);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       transition: opacity 0.15s, transform 0.08s;
       -webkit-tap-highlight-color: transparent;
     }
     .mkdir-actions button:active { transform: scale(0.97); }
     #mkdir-cancel-btn {
-      background: #1E1C1A;
-      color: #7A7570;
+      background: var(--launch-bg2);
+      color: var(--launch-text2);
+      border: 1px solid var(--launch-border);
     }
-    #mkdir-cancel-btn:hover { color: #F0EDE8; }
+    #mkdir-cancel-btn:hover { color: var(--launch-text); }
     #mkdir-create-btn {
-      background: #A14A36;
-      color: #F0EDE8;
+      background: var(--launch-accent);
+      color: #ffffff;
     }
-    #mkdir-create-btn:hover { background: #8C3F2E; }
+    #mkdir-create-btn:hover { background: var(--launch-accent-h); }
     #mkdir-create-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     #mkdir-error {
       font-size: 12px;
@@ -427,6 +549,11 @@
       text-align: center;
       min-height: 16px;
     }
+
+
+    /* ══════════════════════════════════════════════════
+       TERMINAL VIEW — Dark theme (unchanged)
+    ══════════════════════════════════════════════════ */
 
     /* ── Header ── */
     #header {
@@ -447,41 +574,30 @@
       font-weight: 600;
       color: var(--accent);
       letter-spacing: -0.2px;
-    }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    .status-pill {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: var(--bg-secondary);
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      border: 1px solid var(--border-color);
     }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .status-dot.green { background: var(--status-green); }
-    .status-dot.amber { background: var(--status-amber); animation: pulse 1.2s ease-in-out infinite; }
-    .status-dot.red   { background: var(--status-red); }
+    .header-right { display: flex; align-items: center; gap: 12px; }
 
     .kill-btn {
       background: none;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--accent);
       border-radius: 999px;
       padding: 5px 14px;
       font-family: var(--font-ui);
       font-size: 12.5px;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: var(--accent);
       cursor: pointer;
       transition: all 0.15s;
       white-space: nowrap;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .kill-btn:hover { border-color: var(--status-red); color: var(--status-red); }
+    .kill-btn:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
     .kill-btn.confirm { background: var(--status-red); color: #fff; border-color: var(--status-red); }
 
     /* ── Terminal Container ── */
@@ -505,14 +621,13 @@
     }
     /* xterm overrides */
     .xterm { height: 100%; }
-    .xterm-screen { margin: 0 auto; }   /* center canvas — xterm leaves fractional px on one side */
+    .xterm-screen { margin: 0 auto; }
     .xterm-viewport { overflow-y: auto !important; }
     .xterm-viewport::-webkit-scrollbar { width: 6px; }
     .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
     .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.2); border-radius: 3px; }
 
     /* ── Mobile Toolbar Row ── */
-    /* Floats above keyboard, not part of flex flow */
     #mobile-toolbar {
       display: none;
       position: fixed;
@@ -597,17 +712,8 @@
       color: #fff;
       transform: scale(0.88);
     }
-    /* Sticky Ctrl active state */
-    .tb-btn.ctrl-active {
-      color: var(--accent);
-    }
-    .tb-sep {
-      flex-shrink: 0;
-      width: 1px;
-      height: 18px;
-      background: var(--border-color);
-      margin: 0 2px;
-    }
+    .tb-btn.ctrl-active { color: var(--accent); }
+    .tb-btn.sym { font-size: 15px; }
 
     /* ── Reconnect Overlay ── */
     #reconnect-overlay {
@@ -675,22 +781,18 @@
       -webkit-backdrop-filter: blur(24px);
       border-top: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 20px 20px 0 0;
-      transform: translateY(100%);
+      transform: translateY(100vh);
       transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #compose-overlay.open { transform: translateY(0); }
 
-    #compose-body {
-      padding: 14px 16px;
-    }
-    #compose-box {
-      position: relative;
-    }
+    #compose-body { padding: 14px 16px; }
+    #compose-box { position: relative; }
     #compose-textarea {
       display: block;
       width: 100%;
       resize: none;
-      border: 1.5px solid #444444;
+      border: 1.5px solid rgba(255,255,255,0.2);
       border-radius: 24px;
       padding: 14px 52px 52px 16px;
       font-family: var(--font-mono);
@@ -746,6 +848,15 @@
     #compose-send:hover { background: var(--accent-hover); }
     #compose-send:active { transform: scale(0.92); }
 
+    /* ── Header button sizing ── */
+    #detach-btn, #kill-btn { min-width: 108px; justify-content: center; }
+
+    /* ── Gemini mode overrides ── */
+    #terminal-view.gemini-mode .header-wordmark { color: #4285F4; }
+    #terminal-view.gemini-mode .kill-btn { border-color: #4285F4; color: #4285F4; }
+    #terminal-view.gemini-mode .kill-btn:hover { border-color: #2a6dd4; color: #2a6dd4; }
+    #terminal-view.gemini-mode .kill-btn.confirm { background: var(--status-red); color: #fff; border-color: var(--status-red); }
+
     /* ── Animations ── */
     @keyframes spin  { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -759,11 +870,24 @@
 <div id="launch-screen">
 
   <div id="launch-header">
-    <pre class="clive-logo"><div class="flex-row"><span class="logo-cli"> ██████╗██╗     ██╗</span><span class="logo-ve">██╗   ██╗███████╗</span></div><div class="flex-row"><span class="logo-cli">██╔════╝██║     ██║</span><span class="logo-ve">██║   ██║██╔════╝</span></div><div class="flex-row"><span class="logo-cli">██║     ██║     ██║</span><span class="logo-ve">██║   ██║█████╗  </span></div><div class="flex-row"><span class="logo-cli">██║     ██║     ██║</span><span class="logo-ve">╚██╗ ██╔╝██╔══╝  </span></div><div class="flex-row"><span class="logo-cli">╚██████╗███████╗██║</span><span class="logo-ve"> ╚████╔╝ ███████╗</span></div><div class="flex-row"><span class="logo-cli"> ╚═════╝╚══════╝╚═╝</span><span class="logo-ve">  ╚═══╝  ╚══════╝</span></div></pre>
+    <!-- CLIVE Logo -->
+    <pre id="clive-logo"><span class="logo-cli"> ██████╗██╗     ██╗</span><span class="logo-ve">██╗   ██╗███████╗</span>
+<span class="logo-cli">██╔════╝██║     ██║</span><span class="logo-ve">██║   ██║██╔════╝</span>
+<span class="logo-cli">██║     ██║     ██║</span><span class="logo-ve">██║   ██║█████╗  </span>
+<span class="logo-cli">██║     ██║     ██║</span><span class="logo-ve">╚██╗ ██╔╝██╔══╝  </span>
+<span class="logo-cli">╚██████╗███████╗██║</span><span class="logo-ve"> ╚████╔╝ ███████╗</span>
+<span class="logo-cli"> ╚═════╝╚══════╝╚═╝</span><span class="logo-ve">  ╚═══╝  ╚══════╝</span></pre>
 
-    <div id="path-row">
-      <span id="path-display">/</span>
+    <!-- Tab Switcher -->
+    <div id="tab-switcher">
+      <button class="tab-btn active" data-tab="remote">Remote Drive</button>
+      <button class="tab-btn" data-tab="tmux">Tmux</button>
     </div>
+  </div>
+
+  <!-- Path display (below sticky header) -->
+  <div id="path-row">
+    <span id="path-display">/</span>
   </div>
 
   <div id="browser-list">
@@ -779,21 +903,19 @@
         <button class="runner-btn" data-cli="gemini">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9961 24C12.1818 17.5091 17.2917 12.1818 24 11.9961C17.2917 11.8105 12.1818 6.49132 11.9961 0C11.8105 6.49132 6.69229 11.8105 0 11.9961C6.69229 12.1818 11.8105 17.5091 11.9961 24Z"/></svg>
         </button>
-        <button class="runner-btn" data-cli="tmux">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-        </button>
       </div>
-      <button id="start-btn">INITIALIZE</button>
+      <button id="start-btn">START SESSION</button>
     </div>
-    <button id="mkdir-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-      </svg>
-    </button>
   </div>
 
 </div>
+
+<!-- Mkdir floating button (outside launch-screen so it's above bottom-bar gradient) -->
+<button id="mkdir-btn" title="New folder">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
 
 <!-- ══════════════════════════════════════════════════════════
      MKDIR MODAL
@@ -816,13 +938,12 @@
 <div id="terminal-view" class="hidden">
 
   <header id="header">
-    <div class="header-wordmark" id="header-wordmark">claude</div>
+    <div class="header-wordmark" id="header-wordmark"></div>
     <div class="header-right">
-      <div class="status-pill" id="status-pill">
-        <div class="status-dot red" id="status-dot"></div>
-        <span id="status-text">Disconnected</span>
-      </div>
-      <button class="kill-btn" id="detach-btn">↩ Detach</button>
+      <button class="kill-btn" id="detach-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Detach
+      </button>
       <button class="kill-btn" id="kill-btn">✕ End Session</button>
     </div>
   </header>
@@ -836,16 +957,15 @@
 <!-- Floating toolbar row (outside terminal-view, position: fixed) -->
 <div id="mobile-toolbar">
   <div id="toolbar-pill">
-    <button class="tb-btn" data-key="&#x1b;">Esc</button>
-    <button class="tb-btn" data-key="&#x09;">Tab</button>
-    <button class="tb-btn" data-key="&#x1b;[A">▲</button>
-    <button class="tb-btn" data-key="&#x1b;[B">▼</button>
-    <button class="tb-btn" data-key="&#x1b;[D">◀</button>
-    <button class="tb-btn" data-key="&#x1b;[C">▶</button>
-    <button class="tb-btn" data-key="&#x0d;" style="font-size:20px">↵</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" id="tb-ctrl">Ctrl</button>
     <button class="tb-btn" data-key="&#x03;">^C</button>
+    <button class="tb-btn" data-key="&#x1b;">Esc</button>
+    <button class="tb-btn" id="tb-ctrl">Ctrl</button>
+    <button class="tb-btn" data-key="&#x09;">Tab</button>
+    <button class="tb-btn sym" data-key="&#x1b;[D">◀</button>
+    <button class="tb-btn sym" data-key="&#x1b;[A">▲</button>
+    <button class="tb-btn sym" data-key="&#x1b;[B">▼</button>
+    <button class="tb-btn sym" data-key="&#x1b;[C">▶</button>
+    <button class="tb-btn sym" data-key="&#x0d;">↵</button>
   </div>
   <button id="tb-compose">
     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -904,6 +1024,7 @@ const state = {
   killConfirmTimer: null,
   killConfirmPending: false,
   ctrlMode: false,
+  activeTab: 'remote',  // 'remote' | 'tmux'
   isMobile: ('ontouchstart' in window) || window.innerWidth < 768,
 };
 
@@ -913,18 +1034,18 @@ const launchScreen     = $('launch-screen');
 const terminalView     = $('terminal-view');
 const terminalWrap     = $('terminal-wrap');
 const pathDisplay      = $('path-display');
+const pathRow          = $('path-row');
 const browserList      = $('browser-list');
 const startBtn         = $('start-btn');
-const statusDot        = $('status-dot');
-const statusText       = $('status-text');
 const killBtn          = $('kill-btn');
 const detachBtn        = $('detach-btn');
 const headerWordmark   = $('header-wordmark');
-const statusPill       = $('status-pill');
 const reconnectOverlay = $('reconnect-overlay');
 const mobileToolbar    = $('mobile-toolbar');
 const mobileInput      = $('mobile-input');
 const ctrlBtn          = $('tb-ctrl');
+const mkdirBtn         = $('mkdir-btn');
+const runnerToggleEl   = document.querySelector('.runner-toggle');
 
 // ── xterm.js ───────────────────────────────────────────────────────────────────
 const fitAddon = new FitAddon.FitAddon();
@@ -965,7 +1086,6 @@ term.onData(data => {
 });
 
 // ── Layout / fit ───────────────────────────────────────────────────────────────
-// PILL_H + PILL_GAP must match CSS --pill-h and --pill-gap
 const PILL_H   = 52;
 const PILL_GAP = 10;
 
@@ -980,21 +1100,16 @@ function doFit() {
   } catch (_) {}
 }
 
-// Use visualViewport to correctly handle the on-screen keyboard.
-// Updates terminal height and pill position so they stay above the keyboard.
 function updateLayout() {
   const vv = window.visualViewport;
   if (!vv) { doFit(); return; }
 
-  // How many px of keyboard is covering the bottom of the window
   const keyboardH = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
 
-  // Position pill just above the keyboard
   if (state.isMobile && state.sessionActive) {
     const pillBottom = keyboardH + PILL_GAP;
     mobileToolbar.style.bottom = pillBottom + 'px';
 
-    // Shrink terminal-wrap so content isn't hidden behind the pill
     const pillarH = PILL_H + pillBottom;
     terminalWrap.style.paddingBottom = pillarH + 'px';
   }
@@ -1002,7 +1117,6 @@ function updateLayout() {
   doFit();
 }
 
-// Listen on both window resize (desktop) and visualViewport resize (keyboard)
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(updateLayout, 80);
@@ -1026,22 +1140,19 @@ function showLaunch() {
   mobileToolbar.style.display = 'none';
   document.body.classList.remove('mobile-show');
   terminalWrap.style.paddingBottom = '';
+  // Restore mkdir button only if in remote tab
+  if (state.activeTab === 'remote') mkdirBtn.style.display = '';
 }
 
 function showTerminal() {
   launchScreen.classList.add('hidden');
   terminalView.classList.remove('hidden');
+  mkdirBtn.style.display = 'none';
   if (state.isMobile) {
     document.body.classList.add('mobile-show');
     mobileToolbar.style.display = '';
   }
   requestAnimationFrame(() => { updateLayout(); term.scrollToBottom(); });
-}
-
-// ── Status ─────────────────────────────────────────────────────────────────────
-function setStatus(type, text) {
-  statusDot.className = 'status-dot ' + type;
-  statusText.textContent = text;
 }
 
 // ── Reconnect overlay ──────────────────────────────────────────────────────────
@@ -1054,7 +1165,6 @@ function hideReconnectOverlay() {
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────
 
-// Tear down whatever socket exists and start fresh.
 function forceReconnect() {
   clearTimeout(state.reconnectTimer);
   clearTimeout(state.reconnectOverlayTimer);
@@ -1073,9 +1183,6 @@ function forceReconnect() {
 }
 
 async function connect() {
-  // On reconnect (not first load), skip the doomed WS attempt entirely.
-  // Mobile browsers block new WS connections while the stale TCP is dying.
-  // Just confirm the server is up via HTTP, then reload the page.
   if (state.hasConnectedOnce) {
     try {
       await fetch(`/api/session?_=${Date.now()}`, { cache: 'no-store' });
@@ -1102,7 +1209,6 @@ async function connect() {
     state.wsConnected = true;
     state.hasConnectedOnce = true;
     state.reconnectAttempt = 0;
-    setStatus('green', 'Connected');
     hideReconnectOverlay();
     term.reset();
   });
@@ -1127,15 +1233,14 @@ async function connect() {
         showLaunch();
         term.clear();
         resetKillBtn();
-        // Reset launch controls based on current mode
-        if (state.selectedCli === 'tmux') {
+        if (state.activeTab === 'tmux') {
           state.selectedSession = null;
           startBtn.disabled = true;
-          startBtn.textContent = 'ATTACH';
+          startBtn.textContent = 'RESUME SESSION';
           loadSessions();
         } else {
           startBtn.disabled = false;
-          startBtn.textContent = 'INITIALIZE';
+          startBtn.textContent = 'START SESSION';
         }
       }
     }
@@ -1145,7 +1250,6 @@ async function connect() {
     clearTimeout(connectTimeout);
     if (state.ws !== ws) return;
     state.wsConnected = false;
-    setStatus('amber', 'Reconnecting…');
     scheduleReconnect();
     if (!state.reconnectOverlayTimer) {
       state.reconnectOverlayTimer = setTimeout(showReconnectOverlay, 1000);
@@ -1188,32 +1292,85 @@ setInterval(() => {
   forceReconnect();
 }, 3000);
 
+// ── Header logos ───────────────────────────────────────────────────────────────
+const CLAUDE_LOGO_SVG = `<svg fill="none" height="22" viewBox="0 -.01 39.5 39.53" width="22" xmlns="http://www.w3.org/2000/svg"><path d="m7.75 26.27 7.77-4.36.13-.38-.13-.21h-.38l-1.3-.08-4.44-.12-3.85-.16-3.73-.2-.94-.2-.88-1.16.09-.58.79-.53 1.13.1 2.5.17 3.75.26 2.72.16 4.03.42h.64l.09-.26-.22-.16-.17-.16-3.88-2.63-4.2-2.78-2.2-1.6-1.19-.81-.6-.76-.26-1.66 1.08-1.19 1.45.1.37.1 1.47 1.13 3.14 2.43 4.1 3.02.6.5.24-.17.03-.12-.27-.45-2.23-4.03-2.38-4.1-1.06-1.7-.28-1.02c-.1-.42-.17-.77-.17-1.2l1.23-1.67.68-.22 1.64.22.69.6 1.02 2.33 1.65 3.67 2.56 4.99.75 1.48.4 1.37.15.42h.26v-.24l.21-2.81.39-3.45.38-4.44.13-1.25.62-1.5 1.23-.81.96.46.79 1.13-.11.73-.47 3.05-.92 4.78-.6 3.2h.35l.4-.4 1.62-2.15 2.72-3.4 1.2-1.35 1.4-1.49.9-.71h1.7l1.25 1.86-.56 1.92-1.75 2.22-1.45 1.88-2.08 2.8-1.3 2.24.12.18.31-.03 4.7-1 2.54-.46 3.03-.52 1.37.64.15.65-.54 1.33-3.24.8-3.8.76-5.66 1.34-.07.05.08.1 2.55.24 1.09.06h2.67l4.97.37 1.3.86.78 1.05-.13.8-2 1.02-2.7-.64-6.3-1.5-2.16-.54h-.3v.18l1.8 1.76 3.3 2.98 4.13 3.84.21.95-.53.75-.56-.08-3.63-2.73-1.4-1.23-3.17-2.67h-.21v.28l.73 1.07 3.86 5.8.2 1.78-.28.58-1 .35-1.1-.2-2.26-3.17-2.33-3.57-1.88-3.2-.23.13-1.11 11.95-.52.61-1.2.46-1-.76-.53-1.23.53-2.43.64-3.17.52-2.52.47-3.13.28-1.04-.02-.07-.23.03-2.36 3.24-3.59 4.85-2.84 3.04-.68.27-1.18-.61.11-1.09.66-.97 3.93-5 2.37-3.1 1.53-1.79-.01-.26h-.09l-10.44 6.78-1.86.24-.8-.75.1-1.23.38-.4 3.14-2.16z" fill="currentColor"/></svg>`;
+const GEMINI_LOGO_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9961 24C12.1818 17.5091 17.2917 12.1818 24 11.9961C17.2917 11.8105 12.1818 6.49132 11.9961 0C11.8105 6.49132 6.69229 11.8105 0 11.9961C6.69229 12.1818 11.8105 17.5091 11.9961 24Z"/></svg>`;
+
+function setHeaderLogo(cli) {
+  if (cli === 'gemini') headerWordmark.innerHTML = GEMINI_LOGO_SVG;
+  else headerWordmark.innerHTML = CLAUDE_LOGO_SVG;
+}
+
 // ── Header state ───────────────────────────────────────────────────────────────
+function setGeminiMode(on) {
+  terminalView.classList.toggle('gemini-mode', on);
+}
+
 function updateHeaderForSession(sessionType, sessionName, cli) {
   if (sessionType === 'custom') {
-    headerWordmark.textContent = sessionName || 'tmux';
-    statusPill.style.display = 'none';
-    detachBtn.style.display = '';
+    if (/claude/i.test(sessionName)) { setHeaderLogo('claude'); setGeminiMode(false); }
+    else if (/gemini/i.test(sessionName)) { setHeaderLogo('gemini'); setGeminiMode(true); }
+    else { headerWordmark.textContent = sessionName || 'tmux'; setGeminiMode(false); }
   } else {
-    headerWordmark.textContent = cli || 'claude';
-    statusPill.style.display = '';
-    detachBtn.style.display = 'none';
+    setHeaderLogo(cli);
+    setGeminiMode(cli === 'gemini');
   }
+  detachBtn.style.display = '';
 }
 
 function resetHeader() {
-  headerWordmark.textContent = state.selectedCli === 'tmux' ? 'tmux' : (state.selectedCli || 'claude');
-  statusPill.style.display = '';
+  if (state.selectedCli === 'tmux') {
+    headerWordmark.textContent = 'tmux';
+  } else {
+    setHeaderLogo(state.selectedCli || 'claude');
+  }
+  setGeminiMode(false);
   detachBtn.style.display = 'none';
 }
 
+// ── Tab Switcher ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeTab = btn.dataset.tab;
+
+    if (state.activeTab === 'tmux') {
+      state.selectedCli = 'tmux';
+      pathRow.style.display = 'none';
+      runnerToggleEl.style.display = 'none';
+      mkdirBtn.style.display = 'none';
+      startBtn.disabled = true;
+      startBtn.textContent = 'RESUME SESSION';
+      loadSessions();
+    } else {
+      // Restore runner selection
+      const activeRunner = document.querySelector('.runner-btn.active');
+      state.selectedCli = activeRunner ? activeRunner.dataset.cli : 'claude';
+      pathRow.style.display = '';
+      runnerToggleEl.style.display = '';
+      mkdirBtn.style.display = '';
+      startBtn.disabled = false;
+      startBtn.textContent = 'START SESSION';
+      browse(state.browsePath || '');
+    }
+  });
+});
+
+// ── CLI Runner Toggle (Claude / Gemini) ────────────────────────────────────────
+document.querySelectorAll('.runner-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.runner-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.selectedCli = btn.dataset.cli;
+  });
+});
+
 // ── Session List (tmux mode) ────────────────────────────────────────────────────
 async function loadSessions() {
-  pathDisplay.textContent = 'tmux sessions';
-  $('mkdir-btn').style.display = 'none';
   state.selectedSession = null;
   startBtn.disabled = true;
-  startBtn.textContent = 'ATTACH';
+  startBtn.textContent = 'RESUME SESSION';
 
   browserList.innerHTML = '<div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>';
   let data;
@@ -1235,8 +1392,17 @@ async function loadSessions() {
     const card = document.createElement('button');
     card.className = 'session-card';
     card.innerHTML = `
-      <span class="session-card-name">${session.name}</span>
-      <span class="session-card-meta">${session.windows} win</span>
+      <div class="session-card-left">
+        <div class="session-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+        </div>
+        <div class="session-info">
+          <span class="session-card-name">${session.name}</span>
+          <span class="session-card-meta">${session.windows} window${session.windows !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
     `;
     card.addEventListener('click', () => {
       document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
@@ -1252,7 +1418,7 @@ async function loadSessions() {
 
 // ── Directory Browser ──────────────────────────────────────────────────────────
 async function browse(dirPath) {
-  $('mkdir-btn').style.display = '';
+  mkdirBtn.style.display = '';
   browserList.innerHTML = '<div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>';
   let data;
   try {
@@ -1271,7 +1437,7 @@ async function browse(dirPath) {
   renderBreadcrumb(data.path);
 
   const frag = document.createDocumentFragment();
-  if (data.parent) frag.appendChild(makeEntryRow('parent', '↩', '..', data.parent, null));
+  if (data.parent) frag.appendChild(makeEntryRow('parent', null, '..', data.parent, null));
   for (const e of data.entries) {
     const full = data.path.replace(/\/$/, '') + '/' + e.name;
     frag.appendChild(makeEntryRow(e.type, null, e.name, e.type === 'dir' ? full : null, e.mtime));
@@ -1292,16 +1458,17 @@ function fmtMtime(ms) {
   const now = new Date();
   const diffDays = (now - d) / 86400000;
   if (diffDays < 1 && now.getDate() === d.getDate()) {
-    // today: show time
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   if (diffDays < 365) {
-    // within a year: show month + day
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
-  // older: show year
   return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
+const ICON_PARENT = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 9 9 4 4 9"/><path d="M20 20h-7a4 4 0 0 1-4-4V4"/></svg>`;
+const ICON_FOLDER = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+const ICON_FILE   = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
 
 function makeEntryRow(type, _icon, name, targetPath, mtime) {
   const row = document.createElement('button');
@@ -1310,19 +1477,28 @@ function makeEntryRow(type, _icon, name, targetPath, mtime) {
   const left = document.createElement('div');
   left.className = 'entry-left';
 
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'entry-icon';
+  iconWrap.innerHTML = type === 'parent' ? ICON_PARENT : type === 'dir' ? ICON_FOLDER : ICON_FILE;
+
+  const textCol = document.createElement('div');
+  textCol.className = 'entry-text';
+
   const nm = document.createElement('span');
   nm.className = 'entry-name';
   nm.textContent = name;
-
-  left.appendChild(nm);
-  row.appendChild(left);
+  textCol.appendChild(nm);
 
   if (mtime) {
     const meta = document.createElement('span');
     meta.className = 'entry-meta';
     meta.textContent = fmtMtime(mtime);
-    row.appendChild(meta);
+    textCol.appendChild(meta);
   }
+
+  left.appendChild(iconWrap);
+  left.appendChild(textCol);
+  row.appendChild(left);
 
   if (targetPath) {
     row.addEventListener('click', () => browse(targetPath));
@@ -1336,27 +1512,9 @@ function renderBreadcrumb(fullPath) {
   pathDisplay.textContent = '/' + fullPath.split('/').filter(Boolean).join('/');
 }
 
-// ── CLI Toggle ─────────────────────────────────────────────────────────────────
-document.querySelectorAll('.runner-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.runner-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.selectedCli = btn.dataset.cli;
-    state.selectedSession = null;
-
-    if (state.selectedCli === 'tmux') {
-      loadSessions();
-    } else {
-      startBtn.disabled = false;
-      startBtn.textContent = 'INITIALIZE';
-      browse(state.browsePath || '');
-    }
-  });
-});
-
 // ── Start Session ──────────────────────────────────────────────────────────────
 startBtn.addEventListener('click', async () => {
-  if (state.selectedCli === 'tmux') {
+  if (state.activeTab === 'tmux') {
     if (!state.selectedSession) return;
     startBtn.disabled = true;
     startBtn.textContent = 'ATTACHING…';
@@ -1370,17 +1528,17 @@ startBtn.addEventListener('click', async () => {
       if (!resp.ok) {
         alert(data.error || 'Failed to attach to session');
         startBtn.disabled = false;
-        startBtn.textContent = 'ATTACH';
+        startBtn.textContent = 'RESUME SESSION';
       }
     } catch (err) {
       alert('Network error: ' + err.message);
       startBtn.disabled = false;
-      startBtn.textContent = 'ATTACH';
+      startBtn.textContent = 'RESUME SESSION';
     }
   } else {
     if (!state.browsePath) return;
     startBtn.disabled = true;
-    startBtn.textContent = 'INITIALIZING…';
+    startBtn.textContent = 'STARTING…';
     try {
       const resp = await fetch('/api/session/start', {
         method: 'POST',
@@ -1391,12 +1549,12 @@ startBtn.addEventListener('click', async () => {
       if (!resp.ok) {
         alert(data.error || 'Failed to start session');
         startBtn.disabled = false;
-        startBtn.textContent = 'INITIALIZE';
+        startBtn.textContent = 'START SESSION';
       }
     } catch (err) {
       alert('Network error: ' + err.message);
       startBtn.disabled = false;
-      startBtn.textContent = 'INITIALIZE';
+      startBtn.textContent = 'START SESSION';
     }
   }
 });
@@ -1431,7 +1589,6 @@ function sendKey(key) {
   if (navigator.vibrate) navigator.vibrate(8);
 }
 
-// Regular key buttons
 document.querySelectorAll('.tb-btn[data-key]').forEach(btn => {
   btn.addEventListener('pointerdown', e => {
     e.preventDefault();
@@ -1439,13 +1596,11 @@ document.querySelectorAll('.tb-btn[data-key]').forEach(btn => {
   });
 });
 
-// Ctrl sticky modifier
 ctrlBtn.addEventListener('pointerdown', e => {
   e.preventDefault();
   state.ctrlMode = !state.ctrlMode;
   ctrlBtn.classList.toggle('ctrl-active', state.ctrlMode);
   if (navigator.vibrate) navigator.vibrate(8);
-  // Focus the hidden input so keyboard stays up
   if (state.isMobile) { mobileInput.setAttribute('inputmode', 'text'); mobileInput.focus(); }
 });
 
@@ -1464,7 +1619,7 @@ const tbCompose       = $('tb-compose');
 
 function autoResizeTextarea() {
   const vv = window.visualViewport;
-  const availH = (vv ? vv.height : window.innerHeight) - 60; // 60px overhead (padding + border-radius)
+  const availH = (vv ? vv.height : window.innerHeight) - 60;
   composeTextarea.style.height = 'auto';
   const natural = composeTextarea.scrollHeight;
   if (natural >= availH) {
@@ -1511,9 +1666,10 @@ function closeCompose() {
 }
 
 function submitCompose() {
-  const text = composeTextarea.value;
+  const text = composeTextarea.value.trimEnd();
   if (text && state.ws && state.ws.readyState === WebSocket.OPEN) {
-    state.ws.send(text + '\r');
+    state.ws.send(text);
+    state.ws.send('\r');
   }
   composeTextarea.value = '';
   closeCompose();
@@ -1535,7 +1691,6 @@ composeSend.addEventListener('pointerdown', e => {
 
 composeTextarea.addEventListener('input', autoResizeTextarea);
 
-// Cmd+Enter / Ctrl+Enter also submits
 composeTextarea.addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
@@ -1554,7 +1709,6 @@ if (state.isMobile) {
     const val = mobileInput.value;
     if (!val) return;
     if (state.ctrlMode) {
-      // Apply Ctrl modifier to first character
       const code = val[0].toLowerCase().charCodeAt(0) - 96;
       if (code >= 1 && code <= 26) sendKey(String.fromCharCode(code));
       else sendKey(val);
@@ -1602,7 +1756,6 @@ const mkdirInput     = $('mkdir-input');
 const mkdirError     = $('mkdir-error');
 const mkdirCreateBtn = $('mkdir-create-btn');
 const mkdirCancelBtn = $('mkdir-cancel-btn');
-const mkdirBtn       = $('mkdir-btn');
 
 function openMkdir() {
   mkdirInput.value = '';
@@ -1662,6 +1815,7 @@ mkdirInput.addEventListener('keydown', e => {
   const resp = await fetch('/api/session').catch(() => null);
   const session = resp ? await resp.json().catch(() => null) : null;
   browse((session && session.cwd) ? session.cwd : '');
+  mkdirBtn.style.display = ''; // show now that we're in remote tab on launch screen
 })();
 
 connect();

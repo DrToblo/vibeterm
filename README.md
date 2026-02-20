@@ -1,13 +1,13 @@
-# Claude Terminal
+# vibeterm
 
-A mobile-first web terminal that streams a persistent PTY session (Claude Code CLI or Gemini CLI) to the browser over WebSockets.
+A mobile-first web terminal that streams a persistent tmux session (Claude Code CLI or Gemini CLI) to the browser over WebSockets.
 
 ## Prerequisites
 
-`node-pty` requires native build tools:
+`node-pty` requires native build tools, and `tmux` is required for persistent sessions:
 
 ```bash
-sudo apt install build-essential python3
+sudo apt install build-essential python3 tmux
 ```
 
 Node.js 18+ required.
@@ -57,14 +57,16 @@ Authentication is handled by Cloudflare Access — configure an Access policy on
 - The mobile toolbar appears automatically on touch devices (< 768px)
 - Tap the terminal area to bring up the on-screen keyboard
 - Use the toolbar buttons for Esc, Tab, arrow keys, and common Ctrl combos
-- Set `maximum-scale=1` in viewport is already configured to prevent accidental pinch-zoom
+- `maximum-scale=1` is set in the viewport to prevent accidental pinch-zoom
 
 ## Architecture
 
 ```
-Browser (xterm.js)  ←→  WebSocket  ←→  Node.js (express + ws)  ←→  node-pty  ←→  claude / gemini
+Browser (xterm.js)  ←→  WebSocket  ←→  Node.js (express + ws)  ←→  node-pty  ←→  tmux  ←→  claude / gemini
 ```
 
-- Single persistent PTY session — survives WebSocket disconnections
+- Sessions are backed by **tmux** — the CLI process survives WebSocket disconnections and server restarts
+- `tmux new-session -A` attaches to an existing named session or creates a new one, so work is never lost
 - 50 KB in-memory scrollback buffer replayed on reconnect
 - WebSocket keepalive ping every 30s (prevents Cloudflare 100s idle timeout)
+- `CLAUDECODE` env var is unset before spawning to avoid nested-session errors

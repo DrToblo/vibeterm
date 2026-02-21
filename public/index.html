@@ -1972,7 +1972,9 @@ function submitCompose() {
   const text = composeTextarea.value.trimEnd();
   if (text && state.ws && state.ws.readyState === WebSocket.OPEN) {
     state.ws.send(text);
-    state.ws.send('\r');
+    setTimeout(() => {
+      if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send('\r');
+    }, 30);
   }
   composeTextarea.value = '';
   closeCompose();

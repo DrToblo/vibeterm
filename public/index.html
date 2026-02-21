@@ -425,6 +425,31 @@
     #start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #start-btn:active:not(:disabled) { transform: scale(0.99); }
 
+    /* ── Font Size Buttons ── */
+    .font-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      min-width: 30px;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.1s;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .font-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+    .font-btn:active { opacity: 0.6; }
+    .font-btn:disabled { opacity: 0.25; cursor: default; background: none; }
+    #font-dec { font-size: 12px; }
+    #font-inc { font-size: 16px; }
+
     /* ── Mkdir Floating Button ── */
     #mkdir-btn {
       position: fixed;
@@ -452,6 +477,125 @@
       box-shadow: 0 4px 12px rgba(60,64,67,0.25), 0 2px 6px rgba(60,64,67,0.15);
     }
     #mkdir-btn:active { transform: scale(0.93); }
+
+    /* ── Clone Floating Button ── */
+    #clone-btn {
+      position: fixed;
+      display: none; /* shown by JS only in remote tab on launch screen */
+      bottom: 180px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid var(--launch-border);
+      box-shadow: 0 1px 2px rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--launch-accent);
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.08s;
+      z-index: 21;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    #clone-btn:hover {
+      box-shadow: 0 4px 12px rgba(60,64,67,0.25), 0 2px 6px rgba(60,64,67,0.15);
+    }
+    #clone-btn:active { transform: scale(0.93); }
+
+    /* ── Clone Modal ── */
+    #clone-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 70;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #clone-scrim.visible { opacity: 1; pointer-events: auto; }
+    #clone-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -48%) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 71;
+      background: #ffffff;
+      border: 1px solid var(--launch-border);
+      border-radius: 20px;
+      padding: 24px;
+      width: calc(100% - 48px);
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(60,64,67,0.18);
+    }
+    #clone-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #clone-modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--launch-text2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-family: var(--font-ui);
+    }
+    #clone-url-input, #clone-dest-input {
+      width: 100%;
+      background: var(--launch-bg2);
+      border: 1px solid var(--launch-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--launch-text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #clone-url-input:focus, #clone-dest-input:focus { border-color: var(--launch-accent); }
+    #clone-url-input::placeholder, #clone-dest-input::placeholder { color: var(--launch-border); }
+    #clone-status {
+      font-size: 12px;
+      text-align: center;
+      min-height: 16px;
+      color: var(--launch-text2);
+    }
+    #clone-status.cloning {
+      color: var(--status-amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    #clone-status.cloning::before {
+      content: '';
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid var(--launch-border);
+      border-top-color: var(--status-amber);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    #clone-status.error { color: var(--status-red); }
+    #clone-submit-btn {
+      background: var(--launch-accent);
+      color: #ffffff;
+    }
+    #clone-submit-btn:hover { background: var(--launch-accent-h); }
+    #clone-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── Mkdir Modal ── */
     #mkdir-scrim {
@@ -567,6 +711,7 @@
       border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
       z-index: 20;
+      position: relative;
     }
     .header-wordmark {
       font-family: var(--font-ui);
@@ -579,26 +724,81 @@
     }
     .header-right { display: flex; align-items: center; gap: 12px; }
 
-    .kill-btn {
+    /* ── Hamburger button ── */
+    #menu-btn {
+      width: 38px;
+      height: 38px;
       background: none;
-      border: 1px solid var(--accent);
-      border-radius: 999px;
-      padding: 5px 14px;
-      font-family: var(--font-ui);
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--accent);
+      border: none;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    .kill-btn:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
-    .kill-btn.confirm { background: var(--status-red); color: #fff; border-color: var(--status-red); }
+    #menu-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+    #menu-btn:active { opacity: 0.6; }
+
+    /* ── Header dropdown menu ── */
+    #header-menu-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 48;
+      display: none;
+    }
+    #header-menu-scrim.open { display: block; }
+
+    #header-menu {
+      position: fixed;
+      top: calc(var(--header-h) + 6px);
+      right: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 49;
+      min-width: 200px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+      transform-origin: top right;
+    }
+    #header-menu.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .menu-item + .menu-item { border-top: 1px solid var(--border-color); }
+    .menu-item:hover { background: rgba(255,255,255,0.05); }
+    .menu-item:active { background: rgba(255,255,255,0.09); }
+    .menu-item svg { flex-shrink: 0; color: var(--text-secondary); }
+    #kill-btn.confirm { color: var(--status-red); }
+    #kill-btn.confirm svg { color: var(--status-red); }
 
     /* ── Terminal Container ── */
     #terminal-wrap {
@@ -848,14 +1048,8 @@
     #compose-send:hover { background: var(--accent-hover); }
     #compose-send:active { transform: scale(0.92); }
 
-    /* ── Header button sizing ── */
-    #detach-btn, #kill-btn { min-width: 108px; justify-content: center; }
-
     /* ── Gemini mode overrides ── */
     #terminal-view.gemini-mode .header-wordmark { color: #4285F4; }
-    #terminal-view.gemini-mode .kill-btn { border-color: #4285F4; color: #4285F4; }
-    #terminal-view.gemini-mode .kill-btn:hover { border-color: #2a6dd4; color: #2a6dd4; }
-    #terminal-view.gemini-mode .kill-btn.confirm { background: var(--status-red); color: #fff; border-color: var(--status-red); }
 
     /* ── Animations ── */
     @keyframes spin  { to { transform: rotate(360deg); } }
@@ -898,10 +1092,10 @@
     <div id="bottom-bar-inner">
       <div class="runner-toggle">
         <button class="runner-btn active" data-cli="claude">
-          <svg fill="none" height="20" viewBox="0 -.01 39.5 39.53" width="20" xmlns="http://www.w3.org/2000/svg"><path d="m7.75 26.27 7.77-4.36.13-.38-.13-.21h-.38l-1.3-.08-4.44-.12-3.85-.16-3.73-.2-.94-.2-.88-1.16.09-.58.79-.53 1.13.1 2.5.17 3.75.26 2.72.16 4.03.42h.64l.09-.26-.22-.16-.17-.16-3.88-2.63-4.2-2.78-2.2-1.6-1.19-.81-.6-.76-.26-1.66 1.08-1.19 1.45.1.37.1 1.47 1.13 3.14 2.43 4.1 3.02.6.5.24-.17.03-.12-.27-.45-2.23-4.03-2.38-4.1-1.06-1.7-.28-1.02c-.1-.42-.17-.77-.17-1.2l1.23-1.67.68-.22 1.64.22.69.6 1.02 2.33 1.65 3.67 2.56 4.99.75 1.48.4 1.37.15.42h.26v-.24l.21-2.81.39-3.45.38-4.44.13-1.25.62-1.5 1.23-.81.96.46.79 1.13-.11.73-.47 3.05-.92 4.78-.6 3.2h.35l.4-.4 1.62-2.15 2.72-3.4 1.2-1.35 1.4-1.49.9-.71h1.7l1.25 1.86-.56 1.92-1.75 2.22-1.45 1.88-2.08 2.8-1.3 2.24.12.18.31-.03 4.7-1 2.54-.46 3.03-.52 1.37.64.15.65-.54 1.33-3.24.8-3.8.76-5.66 1.34-.07.05.08.1 2.55.24 1.09.06h2.67l4.97.37 1.3.86.78 1.05-.13.8-2 1.02-2.7-.64-6.3-1.5-2.16-.54h-.3v.18l1.8 1.76 3.3 2.98 4.13 3.84.21.95-.53.75-.56-.08-3.63-2.73-1.4-1.23-3.17-2.67h-.21v.28l.73 1.07 3.86 5.8.2 1.78-.28.58-1 .35-1.1-.2-2.26-3.17-2.33-3.57-1.88-3.2-.23.13-1.11 11.95-.52.61-1.2.46-1-.76-.53-1.23.53-2.43.64-3.17.52-2.52.47-3.13.28-1.04-.02-.07-.23.03-2.36 3.24-3.59 4.85-2.84 3.04-.68.27-1.18-.61.11-1.09.66-.97 3.93-5 2.37-3.1 1.53-1.79-.01-.26h-.09l-10.44 6.78-1.86.24-.8-.75.1-1.23.38-.4 3.14-2.16z" fill="currentColor"/></svg>
+          <svg width="20" height="20"><use href="/icons.svg#icon-claude"/></svg>
         </button>
         <button class="runner-btn" data-cli="gemini">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9961 24C12.1818 17.5091 17.2917 12.1818 24 11.9961C17.2917 11.8105 12.1818 6.49132 11.9961 0C11.8105 6.49132 6.69229 11.8105 0 11.9961C6.69229 12.1818 11.8105 17.5091 11.9961 24Z"/></svg>
+          <svg width="20" height="20"><use href="/icons.svg#icon-gemini"/></svg>
         </button>
       </div>
       <button id="start-btn">START SESSION</button>
@@ -915,6 +1109,11 @@
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
+</button>
+
+<!-- Clone floating button -->
+<button id="clone-btn" title="Clone repository">
+  <svg width="22" height="22"><use href="/icons.svg#icon-github"/></svg>
 </button>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -933,6 +1132,23 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
+     CLONE MODAL
+══════════════════════════════════════════════════════════════ -->
+<div id="clone-scrim"></div>
+<div id="clone-modal">
+  <div id="clone-modal-title">Clone Repository</div>
+  <input id="clone-url-input" type="url" placeholder="https://github.com/user/repo"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <input id="clone-dest-input" type="text" placeholder="Destination folder (optional)"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div id="clone-status"></div>
+  <div class="mkdir-actions">
+    <button id="clone-cancel-btn">Cancel</button>
+    <button id="clone-submit-btn">Clone</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      TERMINAL VIEW
 ══════════════════════════════════════════════════════════════ -->
 <div id="terminal-view" class="hidden">
@@ -940,11 +1156,13 @@
   <header id="header">
     <div class="header-wordmark" id="header-wordmark"></div>
     <div class="header-right">
-      <button class="kill-btn" id="detach-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Detach
+      <button id="menu-btn" title="Menu" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
       </button>
-      <button class="kill-btn" id="kill-btn">✕ End Session</button>
     </div>
   </header>
 
@@ -952,6 +1170,27 @@
     <div id="terminal-container"></div>
   </div>
 
+</div>
+
+<!-- Header menu scrim + dropdown (outside header to avoid stacking-context trap) -->
+<div id="header-menu-scrim"></div>
+<div id="header-menu">
+  <button class="menu-item" id="font-inc">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+    Larger Text
+  </button>
+  <button class="menu-item" id="font-dec">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 14 4 14 7"/><line x1="7" y1="20" x2="11" y2="20"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="17" y1="12" x2="23" y2="12"/></svg>
+    Smaller Text
+  </button>
+  <button class="menu-item" id="detach-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Detach
+  </button>
+  <button class="menu-item" id="kill-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <span id="kill-btn-label">End Session</span>
+  </button>
 </div>
 
 <!-- Floating toolbar row (outside terminal-view, position: fixed) -->
@@ -1013,6 +1252,7 @@
 // ── State ──────────────────────────────────────────────────────────────────────
 const state = {
   browsePath: '',
+  browseRoot: null,
   selectedCli: 'claude',
   selectedSession: null,
   sessionActive: false,
@@ -1027,6 +1267,15 @@ const state = {
   activeTab: 'remote',  // 'remote' | 'tmux'
   isMobile: ('ontouchstart' in window) || window.innerWidth < 768,
 };
+
+// ── Font size ──────────────────────────────────────────────────────────────────
+const FONT_SIZE_MIN = 10, FONT_SIZE_MAX = 20;
+const FONT_SIZE_KEY = 'vibeterm-fontSize';
+
+function loadFontSize() {
+  const saved = parseInt(localStorage.getItem(FONT_SIZE_KEY), 10);
+  return (saved >= FONT_SIZE_MIN && saved <= FONT_SIZE_MAX) ? saved : (state.isMobile ? 12 : 13);
+}
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -1045,6 +1294,9 @@ const mobileToolbar    = $('mobile-toolbar');
 const mobileInput      = $('mobile-input');
 const ctrlBtn          = $('tb-ctrl');
 const mkdirBtn         = $('mkdir-btn');
+const cloneBtn         = $('clone-btn');
+const fontDecBtn       = $('font-dec');
+const fontIncBtn       = $('font-inc');
 const runnerToggleEl   = document.querySelector('.runner-toggle');
 
 // ── xterm.js ───────────────────────────────────────────────────────────────────
@@ -1053,7 +1305,7 @@ const webLinks = new WebLinksAddon.WebLinksAddon();
 
 const term = new Terminal({
   fontFamily:       '"JetBrains Mono", "Fira Code", monospace',
-  fontSize:         window.innerWidth < 768 ? 12 : 13.5,
+  fontSize:         loadFontSize(),
   lineHeight:       1.0,
   customGlyphs:     true,
   scrollback:       5000,
@@ -1080,6 +1332,17 @@ term.loadAddon(fitAddon);
 term.loadAddon(webLinks);
 term.open($('terminal-container'));
 term.loadAddon(new WebglAddon.WebglAddon());
+
+function applyFontSize(size) {
+  const s = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, size));
+  term.options.fontSize = s;
+  localStorage.setItem(FONT_SIZE_KEY, String(s));
+  requestAnimationFrame(() => doFit());
+  fontDecBtn.disabled = s <= FONT_SIZE_MIN;
+  fontIncBtn.disabled = s >= FONT_SIZE_MAX;
+}
+
+applyFontSize(loadFontSize());
 
 term.onData(data => {
   if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(data);
@@ -1140,14 +1403,18 @@ function showLaunch() {
   mobileToolbar.style.display = 'none';
   document.body.classList.remove('mobile-show');
   terminalWrap.style.paddingBottom = '';
-  // Restore mkdir button only if in remote tab
-  if (state.activeTab === 'remote') mkdirBtn.style.display = '';
+  // Restore mkdir/clone buttons only if in remote tab
+  if (state.activeTab === 'remote') {
+    mkdirBtn.style.display = '';
+    cloneBtn.style.display = '';
+  }
 }
 
 function showTerminal() {
   launchScreen.classList.add('hidden');
   terminalView.classList.remove('hidden');
   mkdirBtn.style.display = 'none';
+  cloneBtn.style.display = 'none';
   if (state.isMobile) {
     document.body.classList.add('mobile-show');
     mobileToolbar.style.display = '';
@@ -1293,8 +1560,8 @@ setInterval(() => {
 }, 3000);
 
 // ── Header logos ───────────────────────────────────────────────────────────────
-const CLAUDE_LOGO_SVG = `<svg fill="none" height="22" viewBox="0 -.01 39.5 39.53" width="22" xmlns="http://www.w3.org/2000/svg"><path d="m7.75 26.27 7.77-4.36.13-.38-.13-.21h-.38l-1.3-.08-4.44-.12-3.85-.16-3.73-.2-.94-.2-.88-1.16.09-.58.79-.53 1.13.1 2.5.17 3.75.26 2.72.16 4.03.42h.64l.09-.26-.22-.16-.17-.16-3.88-2.63-4.2-2.78-2.2-1.6-1.19-.81-.6-.76-.26-1.66 1.08-1.19 1.45.1.37.1 1.47 1.13 3.14 2.43 4.1 3.02.6.5.24-.17.03-.12-.27-.45-2.23-4.03-2.38-4.1-1.06-1.7-.28-1.02c-.1-.42-.17-.77-.17-1.2l1.23-1.67.68-.22 1.64.22.69.6 1.02 2.33 1.65 3.67 2.56 4.99.75 1.48.4 1.37.15.42h.26v-.24l.21-2.81.39-3.45.38-4.44.13-1.25.62-1.5 1.23-.81.96.46.79 1.13-.11.73-.47 3.05-.92 4.78-.6 3.2h.35l.4-.4 1.62-2.15 2.72-3.4 1.2-1.35 1.4-1.49.9-.71h1.7l1.25 1.86-.56 1.92-1.75 2.22-1.45 1.88-2.08 2.8-1.3 2.24.12.18.31-.03 4.7-1 2.54-.46 3.03-.52 1.37.64.15.65-.54 1.33-3.24.8-3.8.76-5.66 1.34-.07.05.08.1 2.55.24 1.09.06h2.67l4.97.37 1.3.86.78 1.05-.13.8-2 1.02-2.7-.64-6.3-1.5-2.16-.54h-.3v.18l1.8 1.76 3.3 2.98 4.13 3.84.21.95-.53.75-.56-.08-3.63-2.73-1.4-1.23-3.17-2.67h-.21v.28l.73 1.07 3.86 5.8.2 1.78-.28.58-1 .35-1.1-.2-2.26-3.17-2.33-3.57-1.88-3.2-.23.13-1.11 11.95-.52.61-1.2.46-1-.76-.53-1.23.53-2.43.64-3.17.52-2.52.47-3.13.28-1.04-.02-.07-.23.03-2.36 3.24-3.59 4.85-2.84 3.04-.68.27-1.18-.61.11-1.09.66-.97 3.93-5 2.37-3.1 1.53-1.79-.01-.26h-.09l-10.44 6.78-1.86.24-.8-.75.1-1.23.38-.4 3.14-2.16z" fill="currentColor"/></svg>`;
-const GEMINI_LOGO_SVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11.9961 24C12.1818 17.5091 17.2917 12.1818 24 11.9961C17.2917 11.8105 12.1818 6.49132 11.9961 0C11.8105 6.49132 6.69229 11.8105 0 11.9961C6.69229 12.1818 11.8105 17.5091 11.9961 24Z"/></svg>`;
+const CLAUDE_LOGO_SVG = `<svg width="22" height="22"><use href="/icons.svg#icon-claude"/></svg>`;
+const GEMINI_LOGO_SVG = `<svg width="22" height="22"><use href="/icons.svg#icon-gemini"/></svg>`;
 
 function setHeaderLogo(cli) {
   if (cli === 'gemini') headerWordmark.innerHTML = GEMINI_LOGO_SVG;
@@ -1340,6 +1607,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       pathRow.style.display = 'none';
       runnerToggleEl.style.display = 'none';
       mkdirBtn.style.display = 'none';
+      cloneBtn.style.display = 'none';
       startBtn.disabled = true;
       startBtn.textContent = 'RESUME SESSION';
       loadSessions();
@@ -1350,6 +1618,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       pathRow.style.display = '';
       runnerToggleEl.style.display = '';
       mkdirBtn.style.display = '';
+      cloneBtn.style.display = '';
       startBtn.disabled = false;
       startBtn.textContent = 'START SESSION';
       browse(state.browsePath || '');
@@ -1430,11 +1699,12 @@ async function browse(dirPath) {
   }
   if (data.error) {
     browserList.innerHTML = `<div class="browser-error">${data.error}</div>`;
-    if (data.path) { state.browsePath = data.path; renderBreadcrumb(data.path); }
+    if (data.path) { state.browsePath = data.path; state.browseRoot = data.browseRoot || null; renderBreadcrumb(data.path, state.browseRoot); }
     return;
   }
   state.browsePath = data.path;
-  renderBreadcrumb(data.path);
+  state.browseRoot = data.browseRoot || null;
+  renderBreadcrumb(data.path, state.browseRoot);
 
   const frag = document.createDocumentFragment();
   if (data.parent) frag.appendChild(makeEntryRow('parent', null, '..', data.parent, null));
@@ -1508,8 +1778,9 @@ function makeEntryRow(type, _icon, name, targetPath, mtime) {
   return row;
 }
 
-function renderBreadcrumb(fullPath) {
-  pathDisplay.textContent = '/' + fullPath.split('/').filter(Boolean).join('/');
+function renderBreadcrumb(fullPath, browseRoot) {
+  const lock = browseRoot ? '🔒 ' : '';
+  pathDisplay.textContent = lock + '/' + fullPath.split('/').filter(Boolean).join('/');
 }
 
 // ── Start Session ──────────────────────────────────────────────────────────────
@@ -1559,26 +1830,58 @@ startBtn.addEventListener('click', async () => {
   }
 });
 
+// ── Header Menu ────────────────────────────────────────────────────────────────
+const menuBtn        = $('menu-btn');
+const headerMenu     = $('header-menu');
+const headerMenuScrim = $('header-menu-scrim');
+
+function openHeaderMenu() {
+  headerMenu.classList.add('open');
+  headerMenuScrim.classList.add('open');
+}
+
+function closeHeaderMenu() {
+  headerMenu.classList.remove('open');
+  headerMenuScrim.classList.remove('open');
+  // Reset kill confirm if menu closes
+  if (state.killConfirmPending) resetKillBtn();
+}
+
+menuBtn.addEventListener('click', () => {
+  if (headerMenu.classList.contains('open')) closeHeaderMenu();
+  else openHeaderMenu();
+});
+
+headerMenuScrim.addEventListener('click', closeHeaderMenu);
+
+// Font buttons close menu on touch (mobile) so user can see result
+fontDecBtn.addEventListener('click', () => applyFontSize(term.options.fontSize - 1));
+fontIncBtn.addEventListener('click', () => applyFontSize(term.options.fontSize + 1));
+
 // ── Detach Session ─────────────────────────────────────────────────────────────
 detachBtn.addEventListener('click', async () => {
+  closeHeaderMenu();
   try { await fetch('/api/session/detach', { method: 'POST' }); } catch (_) {}
 });
 
 // ── Kill Session ───────────────────────────────────────────────────────────────
+const killBtnLabel = $('kill-btn-label');
+
 function resetKillBtn() {
   state.killConfirmPending = false;
   clearTimeout(state.killConfirmTimer);
-  killBtn.textContent = '✕ End Session';
+  killBtnLabel.textContent = 'End Session';
   killBtn.classList.remove('confirm');
 }
 killBtn.addEventListener('click', async () => {
   if (!state.killConfirmPending) {
     state.killConfirmPending = true;
-    killBtn.textContent = 'Confirm?';
+    killBtnLabel.textContent = 'Confirm?';
     killBtn.classList.add('confirm');
     state.killConfirmTimer = setTimeout(resetKillBtn, 3000);
   } else {
     resetKillBtn();
+    closeHeaderMenu();
     try { await fetch('/api/session/kill', { method: 'POST' }); } catch (_) {}
   }
 });
@@ -1722,17 +2025,7 @@ if (state.isMobile) {
   mobileInput.addEventListener('keydown', e => {
     let key = null;
 
-    if (state.ctrlMode && e.key.length === 1) {
-      const code = e.key.toLowerCase().charCodeAt(0) - 96;
-      if (code >= 1 && code <= 26) {
-        key = String.fromCharCode(code);
-        clearCtrl();
-        e.preventDefault();
-        if (key) { sendKey(key); return; }
-      }
-    }
-
-    if      (e.key === 'Backspace')   key = '\x7f';
+    if (e.key === 'Backspace')        key = '\x7f';
     else if (e.key === 'Enter')       key = '\r';
     else if (e.key === 'Escape')      key = '\x1b';
     else if (e.key === 'Tab')         { key = '\t'; e.preventDefault(); }
@@ -1740,6 +2033,22 @@ if (state.isMobile) {
     else if (e.key === 'ArrowDown')   key = '\x1b[B';
     else if (e.key === 'ArrowLeft')   key = '\x1b[D';
     else if (e.key === 'ArrowRight')  key = '\x1b[C';
+    else if (e.key.length === 1 && !e.metaKey) {
+      // Handle all printable characters here so we don't depend on the
+      // input event (unreliable for numbers on iOS "123" keyboard layout).
+      if (e.ctrlKey) {
+        const code = e.key.toLowerCase().charCodeAt(0) - 96;
+        if (code >= 1 && code <= 26) key = String.fromCharCode(code);
+      } else if (!e.altKey) {
+        if (state.ctrlMode) {
+          const code = e.key.toLowerCase().charCodeAt(0) - 96;
+          key = (code >= 1 && code <= 26) ? String.fromCharCode(code) : e.key;
+          clearCtrl();
+        } else {
+          key = e.key;
+        }
+      }
+    }
 
     if (key) { sendKey(key); e.preventDefault(); }
   });
@@ -1810,12 +2119,82 @@ mkdirInput.addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.preventDefault(); closeMkdir(); }
 });
 
+// ── Clone Modal ────────────────────────────────────────────────────────────────
+const cloneScrim     = $('clone-scrim');
+const cloneModal     = $('clone-modal');
+const cloneUrlInput  = $('clone-url-input');
+const cloneDestInput = $('clone-dest-input');
+const cloneStatus    = $('clone-status');
+const cloneSubmitBtn = $('clone-submit-btn');
+const cloneCancelBtn = $('clone-cancel-btn');
+
+function openClone() {
+  cloneUrlInput.value = '';
+  cloneDestInput.value = '';
+  cloneStatus.textContent = '';
+  cloneStatus.className = 'clone-status';
+  cloneSubmitBtn.disabled = false;
+  cloneScrim.classList.add('visible');
+  cloneModal.classList.add('open');
+  setTimeout(() => cloneUrlInput.focus(), 50);
+}
+
+function closeClone() {
+  cloneScrim.classList.remove('visible');
+  cloneModal.classList.remove('open');
+  cloneUrlInput.blur();
+  cloneDestInput.blur();
+}
+
+async function submitClone() {
+  const url = cloneUrlInput.value.trim();
+  if (!url) return;
+  const dest = cloneDestInput.value.trim();
+
+  cloneStatus.textContent = 'Cloning…';
+  cloneStatus.className = 'clone-status cloning';
+  cloneSubmitBtn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/git-clone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, dest: dest || undefined, cwd: state.browsePath }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      cloneStatus.textContent = data.error || 'Clone failed';
+      cloneStatus.className = 'clone-status error';
+      cloneSubmitBtn.disabled = false;
+      return;
+    }
+    closeClone();
+    browse(state.browsePath);
+  } catch (err) {
+    cloneStatus.textContent = 'Network error';
+    cloneStatus.className = 'clone-status error';
+    cloneSubmitBtn.disabled = false;
+  }
+}
+
+cloneBtn.addEventListener('click', openClone);
+cloneCancelBtn.addEventListener('click', closeClone);
+cloneScrim.addEventListener('click', closeClone);
+cloneSubmitBtn.addEventListener('click', submitClone);
+[cloneUrlInput, cloneDestInput].forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitClone(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeClone(); }
+  });
+});
+
 // ── Bootstrap ──────────────────────────────────────────────────────────────────
 (async () => {
   const resp = await fetch('/api/session').catch(() => null);
   const session = resp ? await resp.json().catch(() => null) : null;
   browse((session && session.cwd) ? session.cwd : '');
   mkdirBtn.style.display = ''; // show now that we're in remote tab on launch screen
+  cloneBtn.style.display = '';
 })();
 
 connect();

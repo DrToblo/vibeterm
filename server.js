@@ -4,10 +4,18 @@ const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const pty = require('node-pty');
-const { exec, execSync } = require('child_process');
+const { exec, execSync, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+const BROWSE_ROOT = process.env.BROWSE_ROOT ? path.resolve(process.env.BROWSE_ROOT) : null;
+
+function withinBrowseRoot(p) {
+  if (!BROWSE_ROOT) return true;
+  const resolved = path.resolve(p);
+  return resolved === BROWSE_ROOT || resolved.startsWith(BROWSE_ROOT + path.sep);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -153,13 +161,18 @@ function restoreExistingSession() {
 
       if (runningSessions.includes(saved.sessionName)) {
         if (saved.sessionType === 'managed' && saved.cli && saved.cwd) {
-          console.log(`Reattaching to managed tmux session: ${saved.sessionName}`);
-          spawnSession(saved.cli, saved.cwd);
+          if (!withinBrowseRoot(saved.cwd)) {
+            console.log(`Skipping managed session restore: cwd ${saved.cwd} is outside BROWSE_ROOT`);
+          } else {
+            console.log(`Reattaching to managed tmux session: ${saved.sessionName}`);
+            spawnSession(saved.cli, saved.cwd);
+            return;
+          }
         } else {
           console.log(`Reattaching to custom tmux session: ${saved.sessionName}`);
           attachSession(saved.sessionName);
+          return;
         }
-        return;
       }
     }
   } catch (_) {
@@ -230,6 +243,9 @@ app.get('/api/browse', (req, res) => {
   }
   browsePath = path.resolve(browsePath);
 
+  // Clamp to BROWSE_ROOT if outside (handles stale saved paths)
+  if (!withinBrowseRoot(browsePath)) browsePath = BROWSE_ROOT;
+
   try {
     const entries = fs.readdirSync(browsePath, { withFileTypes: true });
     const statEntry = e => {
@@ -248,16 +264,20 @@ app.get('/api/browse', (req, res) => {
       .map(e => ({ name: e.name, type: 'file', mtime: statEntry(e) }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const parent = path.dirname(browsePath) !== browsePath
+    // Hide parent when at BROWSE_ROOT boundary
+    const atRoot = BROWSE_ROOT && path.resolve(browsePath) === BROWSE_ROOT;
+    const parent = (!atRoot && path.dirname(browsePath) !== browsePath)
       ? path.dirname(browsePath)
       : null;
 
-    res.json({ path: browsePath, parent, entries: [...dirs, ...hiddenDirs, ...files] });
+    res.json({ path: browsePath, parent, entries: [...dirs, ...hiddenDirs, ...files], browseRoot: BROWSE_ROOT });
   } catch (err) {
+    const atRoot = BROWSE_ROOT && path.resolve(browsePath) === BROWSE_ROOT;
     res.json({
       path: browsePath,
-      parent: path.dirname(browsePath) !== browsePath ? path.dirname(browsePath) : null,
+      parent: (!atRoot && path.dirname(browsePath) !== browsePath) ? path.dirname(browsePath) : null,
       entries: [],
+      browseRoot: BROWSE_ROOT,
       error: err.code === 'EACCES' ? 'Permission denied' : err.message,
     });
   }
@@ -268,6 +288,7 @@ app.post('/api/mkdir', (req, res) => {
   if (!dirPath) return res.status(400).json({ error: 'Missing path' });
 
   const resolved = path.resolve(dirPath);
+  if (!withinBrowseRoot(resolved)) return res.status(403).json({ error: 'Outside allowed directory' });
   try {
     fs.mkdirSync(resolved);
     res.json({ ok: true });
@@ -276,6 +297,32 @@ app.post('/api/mkdir', (req, res) => {
                 err.code === 'EACCES' ? 'Permission denied' : err.message;
     res.status(400).json({ error: msg });
   }
+});
+
+app.post('/api/git-clone', (req, res) => {
+  let { url, dest, cwd } = req.body;
+  if (!url || !cwd) return res.status(400).json({ error: 'Missing url or cwd' });
+
+  // Validate URL: github, gitlab, bitbucket HTTPS or git@ SSH
+  const validUrl = /^(https:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/|git@)/.test(url);
+  if (!validUrl) return res.status(400).json({ error: 'Invalid repository URL (must be GitHub, GitLab, or Bitbucket)' });
+
+  // Sanitize dest: derive from URL if omitted, strip unsafe chars
+  if (!dest) {
+    dest = url.split('/').pop().replace(/\.git$/, '') || 'repo';
+  }
+  dest = dest.replace(/[^a-zA-Z0-9._-]/g, '').replace(/^\.+/, '') || 'repo';
+
+  const resolvedDest = path.join(path.resolve(cwd), dest);
+  if (!withinBrowseRoot(resolvedDest)) return res.status(403).json({ error: 'Outside allowed directory' });
+
+  execFile('git', ['clone', '--', url, resolvedDest], { timeout: 120000 }, (err, _stdout, stderr) => {
+    if (err) {
+      const msg = (stderr || err.message || 'Clone failed').slice(0, 200);
+      return res.status(400).json({ error: msg });
+    }
+    res.json({ ok: true });
+  });
 });
 
 app.post('/api/session/start', (req, res) => {
@@ -299,6 +346,8 @@ app.post('/api/session/start', (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: 'Invalid cwd: ' + err.message });
   }
+
+  if (!withinBrowseRoot(cwd)) return res.status(403).json({ error: 'Outside allowed directory' });
 
   spawnSession(cli, cwd);
   res.json({ ok: true });
@@ -363,17 +412,19 @@ wss.on('connection', ws => {
   }
 
   ws.on('message', message => {
-    const raw = message.toString('binary');
-    try {
-      const msg = JSON.parse(raw);
-      if (msg.type === 'resize' && ptyProcess) {
-        const cols = Math.max(1, Math.round(msg.cols));
-        const rows = Math.max(1, Math.round(msg.rows));
-        ptyProcess.resize(cols, rows);
-        // tmux responds to SIGWINCH from the pty resize — no extra command needed
-      }
-      return;
-    } catch (_) {}
+    const raw = message.toString('utf8');
+    if (raw.startsWith('{')) {
+      try {
+        const msg = JSON.parse(raw);
+        if (msg.type === 'resize' && ptyProcess) {
+          const cols = Math.max(1, Math.round(msg.cols));
+          const rows = Math.max(1, Math.round(msg.rows));
+          ptyProcess.resize(cols, rows);
+          // tmux responds to SIGWINCH from the pty resize — no extra command needed
+        }
+        return;
+      } catch (_) {}
+    }
     if (ptyProcess) ptyProcess.write(raw);
   });
 

@@ -2002,6 +2002,7 @@ composeTextarea.addEventListener('keydown', e => {
 });
 
 // ── Mobile keyboard capture ────────────────────────────────────────────────────
+
 if (state.isMobile) {
   $('terminal-container').addEventListener('click', () => {
     mobileInput.setAttribute('inputmode', 'text');
@@ -2009,7 +2010,9 @@ if (state.isMobile) {
   });
 
   mobileInput.addEventListener('input', () => {
-    const val = mobileInput.value;
+    // Strip any typographic quotes iOS may have inserted around digits.
+    const val = mobileInput.value.replace(/[\u2018\u2019\u201C\u201D]/g, '');
+    mobileInput.value = '';
     if (!val) return;
     if (state.ctrlMode) {
       const code = val[0].toLowerCase().charCodeAt(0) - 96;
@@ -2019,33 +2022,36 @@ if (state.isMobile) {
     } else {
       sendKey(val);
     }
-    mobileInput.value = '';
   });
 
   mobileInput.addEventListener('keydown', e => {
     let key = null;
 
-    if (e.key === 'Backspace')        key = '\x7f';
-    else if (e.key === 'Enter')       key = '\r';
-    else if (e.key === 'Escape')      key = '\x1b';
-    else if (e.key === 'Tab')         { key = '\t'; e.preventDefault(); }
-    else if (e.key === 'ArrowUp')     key = '\x1b[A';
-    else if (e.key === 'ArrowDown')   key = '\x1b[B';
-    else if (e.key === 'ArrowLeft')   key = '\x1b[D';
-    else if (e.key === 'ArrowRight')  key = '\x1b[C';
-    else if (e.key.length === 1 && !e.metaKey) {
+    // iOS wraps digit e.key values in typographic quotes e.g. "\u201C5\u201D"
+    // Strip them so length check and comparisons work correctly.
+    const eKey = e.key.replace(/^[\u2018\u2019\u201C\u201D]+|[\u2018\u2019\u201C\u201D]+$/g, '');
+
+    if (eKey === 'Backspace')        key = '\x7f';
+    else if (eKey === 'Enter')       key = '\r';
+    else if (eKey === 'Escape')      key = '\x1b';
+    else if (eKey === 'Tab')         { key = '\t'; e.preventDefault(); }
+    else if (eKey === 'ArrowUp')     key = '\x1b[A';
+    else if (eKey === 'ArrowDown')   key = '\x1b[B';
+    else if (eKey === 'ArrowLeft')   key = '\x1b[D';
+    else if (eKey === 'ArrowRight')  key = '\x1b[C';
+    else if (eKey.length === 1 && !e.metaKey) {
       // Handle all printable characters here so we don't depend on the
       // input event (unreliable for numbers on iOS "123" keyboard layout).
       if (e.ctrlKey) {
-        const code = e.key.toLowerCase().charCodeAt(0) - 96;
+        const code = eKey.toLowerCase().charCodeAt(0) - 96;
         if (code >= 1 && code <= 26) key = String.fromCharCode(code);
       } else if (!e.altKey) {
         if (state.ctrlMode) {
-          const code = e.key.toLowerCase().charCodeAt(0) - 96;
-          key = (code >= 1 && code <= 26) ? String.fromCharCode(code) : e.key;
+          const code = eKey.toLowerCase().charCodeAt(0) - 96;
+          key = (code >= 1 && code <= 26) ? String.fromCharCode(code) : eKey;
           clearCtrl();
         } else {
-          key = e.key;
+          key = eKey;
         }
       }
     }

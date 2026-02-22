@@ -1051,6 +1051,213 @@
     /* ── Gemini mode overrides ── */
     #terminal-view.gemini-mode .header-wordmark { color: #4285F4; }
 
+    /* ── Launch Screen Dark Mode ── */
+    #launch-screen.dark-launch {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      --launch-bg:        #111111;
+      --launch-bg2:       #1A1A1A;
+      --launch-border:    #2A2A2A;
+      --launch-text:      #EEEEEE;
+      --launch-text2:     #888888;
+      --launch-accent:    #D97757;
+      --launch-accent-h:  #C96442;
+      --launch-accent-lt: rgba(217,119,87,0.15);
+    }
+    #launch-screen.dark-launch #bottom-bar {
+      background: linear-gradient(to top, #111111 60%, rgba(17,17,17,0.9) 85%, transparent 100%);
+    }
+    #launch-screen.dark-launch #bottom-bar-inner { background: #1A1A1A; border-color: #2A2A2A; }
+    #launch-screen.dark-launch .runner-toggle { background: #111111; border-color: #2A2A2A; }
+    /* Dark mode modal overrides */
+    body.dark-launch-active #mkdir-modal,
+    body.dark-launch-active #clone-modal {
+      background: #1A1A1A;
+      border-color: #2A2A2A;
+    }
+    body.dark-launch-active #clone-url-input,
+    body.dark-launch-active #clone-dest-input,
+    body.dark-launch-active #mkdir-input {
+      background: #111111;
+      border-color: #2A2A2A;
+      color: #EEEEEE;
+    }
+
+    /* ── Monochrome / E-ink Mode ── */
+    body.mono-mode {
+      --bg-primary:    #FFFFFF;
+      --bg-secondary:  #F4F4F4;
+      --bg-card:       #FFFFFF;
+      --border-color:  #BBBBBB;
+      --text-primary:  #000000;
+      --text-secondary:#666666;
+      --accent:        #000000;
+      --accent-hover:  #333333;
+      --launch-bg:        #FFFFFF;
+      --launch-bg2:       #F0F0F0;
+      --launch-border:    #BBBBBB;
+      --launch-text:      #000000;
+      --launch-text2:     #555555;
+      --launch-accent:    #000000;
+      --launch-accent-h:  #333333;
+      --launch-accent-lt: #EBEBEB;
+    }
+    body.mono-mode #launch-screen { background: #FFFFFF; }
+    body.mono-mode #terminal-view { background: #FFFFFF; }
+    body.mono-mode #header { background: #FFFFFF; border-color: #BBBBBB; }
+    body.mono-mode #terminal-container { background: #FFFFFF; }
+    body.mono-mode #toolbar-pill { background: #FFFFFF; border-color: #BBBBBB; }
+    body.mono-mode #tb-compose { background: #FFFFFF; border-color: #BBBBBB; color: #000; }
+    body.mono-mode .tb-btn { color: #000; }
+    body.mono-mode #bottom-bar { background: linear-gradient(to top, #fff 60%, rgba(255,255,255,0.9) 85%, transparent); }
+    body.mono-mode #bottom-bar-inner { background: #FFFFFF; border-color: #BBBBBB; }
+    body.mono-mode .runner-toggle { background: #F0F0F0; border-color: #BBBBBB; }
+
+    /* ── Settings tab pushed to far right ── */
+    .tab-btn[data-tab="settings"] { margin-left: auto; }
+
+    /* ── Settings Panel ── */
+    #settings-panel {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 40px;
+    }
+    #settings-panel::-webkit-scrollbar { display: none; }
+    .settings-group-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--launch-text2);
+      padding: 18px 16px 6px;
+      font-family: var(--font-ui);
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 11px 16px;
+      background: none;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .settings-row:hover  { background: var(--launch-bg2); }
+    .settings-row:active { background: var(--launch-bg2); }
+    .settings-row-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .settings-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--launch-bg2);
+      border: 1px solid var(--launch-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--launch-text2);
+      flex-shrink: 0;
+      transition: background 0.1s, color 0.1s;
+    }
+    .settings-row:hover .settings-icon { background: var(--launch-accent-lt); color: var(--launch-accent); }
+    .settings-text { display: flex; flex-direction: column; }
+    .settings-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--launch-text);
+      font-family: var(--font-ui);
+    }
+    .settings-desc {
+      font-size: 12px;
+      color: var(--launch-text2);
+      font-family: var(--font-ui);
+    }
+    .settings-field {
+      padding: 8px 16px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ── Dark mode: mkdir/clone floating buttons ── */
+    body.dark-launch-active #mkdir-btn,
+    body.dark-launch-active #clone-btn {
+      background: #1A1A1A;
+      border-color: #2A2A2A;
+      color: #D97757;
+    }
+    body.mono-mode #mkdir-btn,
+    body.mono-mode #clone-btn {
+      background: #FFFFFF;
+      border-color: #BBBBBB;
+      color: #000000;
+    }
+
+    /* ── Toggle switch ── */
+    .lm-toggle {
+      margin-left: auto;
+      flex-shrink: 0;
+      width: 36px;
+      height: 20px;
+      background: var(--launch-border);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.2s;
+      pointer-events: none;
+    }
+    .lm-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    .lm-toggle.on { background: var(--launch-accent); }
+    .lm-toggle.on::after { transform: translateX(16px); }
+    /* Extra args field */
+    .lm-field {
+      padding: 10px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .lm-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--launch-text2);
+      font-family: var(--font-ui);
+    }
+    #lm-extra-args {
+      width: 100%;
+      background: var(--launch-bg2);
+      border: 1px solid var(--launch-border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--launch-text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #lm-extra-args:focus { border-color: var(--launch-accent); }
+    #lm-extra-args::placeholder { color: var(--launch-border); }
+
     /* ── Animations ── */
     @keyframes spin  { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -1075,7 +1282,8 @@
     <!-- Tab Switcher -->
     <div id="tab-switcher">
       <button class="tab-btn active" data-tab="remote">Remote Drive</button>
-      <button class="tab-btn" data-tab="tmux">Tmux</button>
+      <button class="tab-btn" data-tab="tmux">Active Sessions</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
   </div>
 
@@ -1086,6 +1294,68 @@
 
   <div id="browser-list">
     <div class="browser-loading"><span class="browser-spinner"></span> Loading…</div>
+  </div>
+
+  <!-- Settings panel (shown when Settings tab is active) -->
+  <div id="settings-panel">
+    <div class="settings-group-label">Appearance</div>
+    <button class="settings-row" id="sr-dark-btn">
+      <div class="settings-row-left">
+        <div class="settings-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+        <div class="settings-text">
+          <span class="settings-name">Dark Mode</span>
+          <span class="settings-desc">Dark theme for the file browser</span>
+        </div>
+      </div>
+      <div class="lm-toggle" id="lm-dark-toggle"></div>
+    </button>
+    <button class="settings-row" id="sr-mono-btn">
+      <div class="settings-row-left">
+        <div class="settings-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor"/></svg>
+        </div>
+        <div class="settings-text">
+          <span class="settings-name">E-ink / Mono</span>
+          <span class="settings-desc">Monochrome UI and terminal for e-ink displays</span>
+        </div>
+      </div>
+      <div class="lm-toggle" id="lm-mono-toggle"></div>
+    </button>
+
+    <div class="settings-group-label">CLI Options</div>
+    <button class="settings-row" id="sr-yolo-claude-btn">
+      <div class="settings-row-left">
+        <div class="settings-icon">
+          <svg width="16" height="16"><use href="/icons.svg#icon-claude"/></svg>
+        </div>
+        <div class="settings-text">
+          <span class="settings-name">Yolo: Claude</span>
+          <span class="settings-desc">--dangerously-skip-permissions</span>
+        </div>
+      </div>
+      <div class="lm-toggle" id="lm-yolo-claude-toggle"></div>
+    </button>
+    <button class="settings-row" id="sr-yolo-gemini-btn">
+      <div class="settings-row-left">
+        <div class="settings-icon">
+          <svg width="16" height="16"><use href="/icons.svg#icon-gemini"/></svg>
+        </div>
+        <div class="settings-text">
+          <span class="settings-name">Yolo: Gemini</span>
+          <span class="settings-desc">--yolo</span>
+        </div>
+      </div>
+      <div class="lm-toggle" id="lm-yolo-gemini-toggle"></div>
+    </button>
+
+    <div class="settings-group-label">Extra CLI args</div>
+    <div class="settings-field">
+      <input id="lm-extra-args" type="text"
+        placeholder="--model claude-opus-4-6"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
   </div>
 
   <div id="bottom-bar">
@@ -1268,6 +1538,64 @@ const state = {
   isMobile: ('ontouchstart' in window) || window.innerWidth < 768,
 };
 
+// ── Settings ───────────────────────────────────────────────────────────────────
+const SETTINGS_KEY = 'vibeterm-settings';
+const SETTINGS_DEFAULT = { darkMode: false, monoMode: false, yoloClaude: false, yoloGemini: false, extraArgs: '' };
+
+let settings = (() => {
+  try { return { ...SETTINGS_DEFAULT, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+  catch { return { ...SETTINGS_DEFAULT }; }
+})();
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// Terminal color themes
+const TERM_THEME_DEFAULT = {
+  background: '#111111', foreground: '#EEEEEE',
+  cursor: '#D97757', cursorAccent: '#111111',
+  selectionBackground: 'rgba(217,119,87,0.30)',
+  black: '#1A1A1A', red: '#E5484D', green: '#30A46C', yellow: '#F76B15',
+  blue: '#4D9EFF', magenta: '#A06BDB', cyan: '#00B4D8', white: '#CCCCCC',
+  brightBlack: '#555555', brightRed: '#FF6369', brightGreen: '#4ADE80',
+  brightYellow: '#FFB224', brightBlue: '#74B3FF', brightMagenta: '#C084FC',
+  brightCyan: '#22D3EE', brightWhite: '#FFFFFF',
+};
+const TERM_THEME_MONO = {
+  background: '#FFFFFF', foreground: '#000000',
+  cursor: '#000000', cursorAccent: '#FFFFFF',
+  selectionBackground: 'rgba(0,0,0,0.2)',
+  black: '#000000', red: '#222222', green: '#333333', yellow: '#555555',
+  blue: '#222222', magenta: '#333333', cyan: '#444444', white: '#CCCCCC',
+  brightBlack: '#444444', brightRed: '#333333', brightGreen: '#555555',
+  brightYellow: '#666666', brightBlue: '#333333', brightMagenta: '#444444',
+  brightCyan: '#555555', brightWhite: '#EEEEEE',
+};
+
+function applySettings() {
+  const dark = settings.darkMode && !settings.monoMode;
+  const mono = settings.monoMode;
+  // Launch screen dark mode
+  document.getElementById('launch-screen').classList.toggle('dark-launch', dark);
+  document.body.classList.toggle('dark-launch-active', dark);
+  // Mono mode on body (covers both views)
+  document.body.classList.toggle('mono-mode', mono);
+  // Terminal theme
+  term.options.theme = mono ? TERM_THEME_MONO : TERM_THEME_DEFAULT;
+  // Sync toggle UI
+  syncSettingsUI();
+}
+
+function syncSettingsUI() {
+  document.getElementById('lm-dark-toggle').classList.toggle('on', settings.darkMode);
+  document.getElementById('lm-mono-toggle').classList.toggle('on', settings.monoMode);
+  document.getElementById('lm-yolo-claude-toggle').classList.toggle('on', settings.yoloClaude);
+  document.getElementById('lm-yolo-gemini-toggle').classList.toggle('on', settings.yoloGemini);
+  const extraArgsEl = document.getElementById('lm-extra-args');
+  if (document.activeElement !== extraArgsEl) extraArgsEl.value = settings.extraArgs;
+}
+
 // ── Font size ──────────────────────────────────────────────────────────────────
 const FONT_SIZE_MIN = 10, FONT_SIZE_MAX = 20;
 const FONT_SIZE_KEY = 'vibeterm-fontSize';
@@ -1311,21 +1639,7 @@ const term = new Terminal({
   scrollback:       5000,
   scrollSensitivity: 5,
   allowProposedApi: true,
-  theme: {
-    background:          '#111111',
-    foreground:          '#EEEEEE',
-    cursor:              '#D97757',
-    cursorAccent:        '#111111',
-    selectionBackground: 'rgba(217,119,87,0.30)',
-    black:        '#1A1A1A', red:           '#E5484D',
-    green:        '#30A46C', yellow:        '#F76B15',
-    blue:         '#4D9EFF', magenta:       '#A06BDB',
-    cyan:         '#00B4D8', white:         '#CCCCCC',
-    brightBlack:  '#555555', brightRed:     '#FF6369',
-    brightGreen:  '#4ADE80', brightYellow:  '#FFB224',
-    brightBlue:   '#74B3FF', brightMagenta: '#C084FC',
-    brightCyan:   '#22D3EE', brightWhite:   '#FFFFFF',
-  },
+  theme: settings.monoMode ? TERM_THEME_MONO : TERM_THEME_DEFAULT,
 });
 
 term.loadAddon(fitAddon);
@@ -1343,6 +1657,7 @@ function applyFontSize(size) {
 }
 
 applyFontSize(loadFontSize());
+applySettings();
 
 term.onData(data => {
   if (state.ws && state.ws.readyState === WebSocket.OPEN) state.ws.send(data);
@@ -1596,13 +1911,36 @@ function resetHeader() {
 }
 
 // ── Tab Switcher ───────────────────────────────────────────────────────────────
+const settingsPanel = $('settings-panel');
+const bottomBar     = $('bottom-bar');
+
+function showSettingsPanel() {
+  browserList.style.display = 'none';
+  settingsPanel.style.display = 'block';
+  pathRow.style.display = 'none';
+  runnerToggleEl.style.display = 'none';
+  mkdirBtn.style.display = 'none';
+  cloneBtn.style.display = 'none';
+  bottomBar.style.display = 'none';
+  syncSettingsUI();
+}
+
+function hideSettingsPanel() {
+  settingsPanel.style.display = 'none';
+  browserList.style.display = '';
+  bottomBar.style.display = '';
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.activeTab = btn.dataset.tab;
 
-    if (state.activeTab === 'tmux') {
+    if (state.activeTab === 'settings') {
+      showSettingsPanel();
+    } else if (state.activeTab === 'tmux') {
+      hideSettingsPanel();
       state.selectedCli = 'tmux';
       pathRow.style.display = 'none';
       runnerToggleEl.style.display = 'none';
@@ -1612,6 +1950,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       startBtn.textContent = 'RESUME SESSION';
       loadSessions();
     } else {
+      hideSettingsPanel();
       // Restore runner selection
       const activeRunner = document.querySelector('.runner-btn.active');
       state.selectedCli = activeRunner ? activeRunner.dataset.cli : 'claude';
@@ -1811,10 +2150,17 @@ startBtn.addEventListener('click', async () => {
     startBtn.disabled = true;
     startBtn.textContent = 'STARTING…';
     try {
+      const yolo = state.selectedCli === 'claude' ? settings.yoloClaude : settings.yoloGemini;
       const resp = await fetch('/api/session/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cwd: state.browsePath, cli: state.selectedCli }),
+        body: JSON.stringify({
+          cwd: state.browsePath,
+          cli: state.selectedCli,
+          yolo,
+          extraArgs: settings.extraArgs,
+          monochrome: settings.monoMode,
+        }),
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -2194,6 +2540,36 @@ cloneSubmitBtn.addEventListener('click', submitClone);
     if (e.key === 'Enter') { e.preventDefault(); submitClone(); }
     if (e.key === 'Escape') { e.preventDefault(); closeClone(); }
   });
+});
+
+// ── Settings Panel handlers ────────────────────────────────────────────────────
+$('sr-dark-btn').addEventListener('click', () => {
+  settings.darkMode = !settings.darkMode;
+  saveSettings();
+  applySettings();
+});
+
+$('sr-mono-btn').addEventListener('click', () => {
+  settings.monoMode = !settings.monoMode;
+  saveSettings();
+  applySettings();
+});
+
+$('sr-yolo-claude-btn').addEventListener('click', () => {
+  settings.yoloClaude = !settings.yoloClaude;
+  saveSettings();
+  syncSettingsUI();
+});
+
+$('sr-yolo-gemini-btn').addEventListener('click', () => {
+  settings.yoloGemini = !settings.yoloGemini;
+  saveSettings();
+  syncSettingsUI();
+});
+
+$('lm-extra-args').addEventListener('change', e => {
+  settings.extraArgs = e.target.value.trim();
+  saveSettings();
 });
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────────

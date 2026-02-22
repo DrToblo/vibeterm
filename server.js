@@ -70,17 +70,34 @@ function tmuxName(cli, cwd) {
   return `${folder}-${cli}`;
 }
 
-function spawnSession(cli, cwd) {
+function buildCliCmd(cli, options) {
+  const { yolo = false, extraArgs = '', monochrome = false } = options;
+  const parts = [cli];
+  if (yolo) {
+    if (cli === 'claude') parts.push('--dangerously-skip-permissions');
+    else if (cli === 'gemini') parts.push('--yolo');
+  }
+  if (monochrome) parts.push('--no-color');
+  if (extraArgs) {
+    // Sanitize: only keep safe flag characters (alphanumeric, space, dash, underscore, equals, dot, slash)
+    const safe = extraArgs.replace(/[^a-zA-Z0-9 \-_=./]/g, '').trim();
+    if (safe) parts.push(...safe.split(/\s+/).filter(Boolean));
+  }
+  return parts;
+}
+
+function spawnSession(cli, cwd, options = {}) {
   const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
   delete ptyEnv.CLAUDECODE;
 
   const sessionName = tmuxName(cli, cwd);
+  const cliCmd = buildCliCmd(cli, options);
 
   // new-session -A: attach if session exists, create if not
   const proc = pty.spawn('tmux', [
     'new-session', '-A',
     '-s', sessionName,
-    cli,
+    ...cliCmd,
   ], {
     name: 'xterm-256color',
     cols: 80,
@@ -349,7 +366,8 @@ app.post('/api/session/start', (req, res) => {
 
   if (!withinBrowseRoot(cwd)) return res.status(403).json({ error: 'Outside allowed directory' });
 
-  spawnSession(cli, cwd);
+  const { yolo, extraArgs, monochrome } = req.body;
+  spawnSession(cli, cwd, { yolo: !!yolo, extraArgs: extraArgs || '', monochrome: !!monochrome });
   res.json({ ok: true });
 });
 

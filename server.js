@@ -71,13 +71,12 @@ function tmuxName(cli, cwd) {
 }
 
 function buildCliCmd(cli, options) {
-  const { yolo = false, extraArgs = '', monochrome = false } = options;
+  const { yolo = false, extraArgs = '' } = options;
   const parts = [cli];
   if (yolo) {
     if (cli === 'claude') parts.push('--dangerously-skip-permissions');
     else if (cli === 'gemini') parts.push('--yolo');
   }
-  if (monochrome) parts.push('--no-color');
   if (extraArgs) {
     // Sanitize: only keep safe flag characters (alphanumeric, space, dash, underscore, equals, dot, slash)
     const safe = extraArgs.replace(/[^a-zA-Z0-9 \-_=./]/g, '').trim();
@@ -87,8 +86,14 @@ function buildCliCmd(cli, options) {
 }
 
 function spawnSession(cli, cwd, options = {}) {
+  const { monochrome = false } = options;
   const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
   delete ptyEnv.CLAUDECODE;
+  delete ptyEnv.CLAUDE_CODE_ENTRYPOINT;
+  if (monochrome) {
+    ptyEnv.NO_COLOR = '1';
+    delete ptyEnv.FORCE_COLOR;
+  }
 
   const sessionName = tmuxName(cli, cwd);
   const cliCmd = buildCliCmd(cli, options);
@@ -132,6 +137,7 @@ function spawnSession(cli, cwd, options = {}) {
 function attachSession(sessionName) {
   const ptyEnv = { ...process.env, TERM: 'xterm-256color' };
   delete ptyEnv.CLAUDECODE;
+  delete ptyEnv.CLAUDE_CODE_ENTRYPOINT;
 
   const proc = pty.spawn('tmux', [
     'attach-session', '-t', sessionName,

@@ -1086,32 +1086,35 @@
     /* ── Monochrome / E-ink Mode ── */
     body.mono-mode {
       --bg-primary:    #FFFFFF;
-      --bg-secondary:  #F4F4F4;
+      --bg-secondary:  #FFFFFF;
       --bg-card:       #FFFFFF;
-      --border-color:  #BBBBBB;
+      --border-color:  #000000;
       --text-primary:  #000000;
-      --text-secondary:#666666;
+      --text-secondary:#000000;
       --accent:        #000000;
-      --accent-hover:  #333333;
+      --accent-hover:  #000000;
       --launch-bg:        #FFFFFF;
-      --launch-bg2:       #F0F0F0;
-      --launch-border:    #BBBBBB;
+      --launch-bg2:       #FFFFFF;
+      --launch-border:    #000000;
       --launch-text:      #000000;
-      --launch-text2:     #555555;
+      --launch-text2:     #000000;
       --launch-accent:    #000000;
-      --launch-accent-h:  #333333;
-      --launch-accent-lt: #EBEBEB;
+      --launch-accent-h:  #000000;
+      --launch-accent-lt: #EEEEEE;
     }
     body.mono-mode #launch-screen { background: #FFFFFF; }
     body.mono-mode #terminal-view { background: #FFFFFF; }
-    body.mono-mode #header { background: #FFFFFF; border-color: #BBBBBB; }
+    body.mono-mode #header { background: #FFFFFF; border-color: #000000; }
     body.mono-mode #terminal-container { background: #FFFFFF; }
-    body.mono-mode #toolbar-pill { background: #FFFFFF; border-color: #BBBBBB; }
-    body.mono-mode #tb-compose { background: #FFFFFF; border-color: #BBBBBB; color: #000; }
+    body.mono-mode #toolbar-pill { background: #FFFFFF; border-color: #000000; }
+    body.mono-mode #tb-compose { background: #FFFFFF; border-color: #000000; color: #000; }
     body.mono-mode .tb-btn { color: #000; }
     body.mono-mode #bottom-bar { background: linear-gradient(to top, #fff 60%, rgba(255,255,255,0.9) 85%, transparent); }
-    body.mono-mode #bottom-bar-inner { background: #FFFFFF; border-color: #BBBBBB; }
-    body.mono-mode .runner-toggle { background: #F0F0F0; border-color: #BBBBBB; }
+    body.mono-mode #bottom-bar-inner { background: #FFFFFF; border-color: #000000; }
+    body.mono-mode .runner-toggle { background: #FFFFFF; border-color: #000000; }
+    body.mono-mode .logo-cli, body.mono-mode .logo-ve { color: #000000; }
+    body.mono-mode .tab-btn { color: #000000; }
+    body.mono-mode .tab-btn.active { background: #000000; color: #FFFFFF; }
 
     /* ── Settings tab pushed to far right ── */
     .tab-btn[data-tab="settings"] { margin-left: auto; }
@@ -1538,6 +1541,34 @@ const state = {
   isMobile: ('ontouchstart' in window) || window.innerWidth < 768,
 };
 
+// ── ANSI color stripper (for mono/e-ink mode) ──────────────────────────────────
+// Removes SGR color codes (basic, 256-color, truecolor) while keeping bold/underline/etc.
+const _td = new TextDecoder('utf-8', { fatal: false });
+function stripAnsiColors(data) {
+  const str = typeof data === 'string' ? data : _td.decode(data);
+  return str.replace(/\x1b\[([0-9;]*)m/g, (_, params) => {
+    if (!params) return '\x1b[m';
+    const out = [];
+    const segs = params.split(';');
+    let i = 0;
+    while (i < segs.length) {
+      const n = parseInt(segs[i], 10) || 0;
+      if (n === 38 || n === 48) {
+        // extended fg/bg: skip 38;5;N (2 extra) or 38;2;R;G;B (3 extra)
+        const mode = parseInt(segs[i + 1], 10);
+        i += (mode === 5 ? 3 : mode === 2 ? 5 : 1);
+      } else if ((n >= 30 && n <= 37) || n === 39 ||
+                 (n >= 40 && n <= 47) || n === 49 ||
+                 (n >= 90 && n <= 97) || (n >= 100 && n <= 107)) {
+        i++; // drop color codes
+      } else {
+        out.push(segs[i++]);
+      }
+    }
+    return out.length ? `\x1b[${out.join(';')}m` : '';
+  });
+}
+
 // ── Settings ───────────────────────────────────────────────────────────────────
 const SETTINGS_KEY = 'vibeterm-settings';
 const SETTINGS_DEFAULT = { darkMode: false, monoMode: false, yoloClaude: false, yoloGemini: false, extraArgs: '' };
@@ -1565,12 +1596,12 @@ const TERM_THEME_DEFAULT = {
 const TERM_THEME_MONO = {
   background: '#FFFFFF', foreground: '#000000',
   cursor: '#000000', cursorAccent: '#FFFFFF',
-  selectionBackground: 'rgba(0,0,0,0.2)',
-  black: '#000000', red: '#222222', green: '#333333', yellow: '#555555',
-  blue: '#222222', magenta: '#333333', cyan: '#444444', white: '#CCCCCC',
-  brightBlack: '#444444', brightRed: '#333333', brightGreen: '#555555',
-  brightYellow: '#666666', brightBlue: '#333333', brightMagenta: '#444444',
-  brightCyan: '#555555', brightWhite: '#EEEEEE',
+  selectionBackground: 'rgba(0,0,0,0.3)',
+  black: '#000000', red: '#000000', green: '#000000', yellow: '#000000',
+  blue: '#000000', magenta: '#000000', cyan: '#000000', white: '#000000',
+  brightBlack: '#000000', brightRed: '#000000', brightGreen: '#000000',
+  brightYellow: '#000000', brightBlue: '#000000', brightMagenta: '#000000',
+  brightCyan: '#000000', brightWhite: '#000000',
 };
 
 function applySettings() {
@@ -1798,12 +1829,13 @@ async function connect() {
   ws.addEventListener('message', evt => {
     if (state.ws !== ws) return;
     if (evt.data instanceof ArrayBuffer) {
-      term.write(new Uint8Array(evt.data));
+      const data = new Uint8Array(evt.data);
+      term.write(settings.monoMode ? stripAnsiColors(data) : data);
       return;
     }
     const raw = evt.data;
     let msg;
-    try { msg = JSON.parse(raw); } catch (_) { term.write(raw); return; }
+    try { msg = JSON.parse(raw); } catch (_) { term.write(settings.monoMode ? stripAnsiColors(raw) : raw); return; }
 
     if (msg.type === 'state') {
       state.sessionActive = msg.active;

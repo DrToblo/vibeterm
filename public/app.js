@@ -67,21 +67,36 @@ function saveSettings() {
 // terminal: xterm.js theme object (null = inherit from 'default').
 const THEMES = {
   default: {
-    vars: {},
+    vars: {
+      '--bg-primary':     '#F5F5F5',
+      '--bg-secondary':   '#EBEBEB',
+      '--bg-card':        '#FFFFFF',
+      '--border-color':   '#D4D4D4',
+      '--text-primary':   '#1A1A1A',
+      '--text-secondary': '#777777',
+      '--toolbar-bg':       'rgba(245, 245, 245, 0.97)',
+      '--toolbar-text':     '#1A1A1A',
+      '--ui-hover-bg':      'rgba(0,0,0,0.06)',
+      '--ui-active-bg':     'rgba(0,0,0,0.09)',
+      '--compose-border':   'rgba(0,0,0,0.18)',
+      '--cancel-btn-bg':      'rgba(0,0,0,0.06)',
+      '--cancel-btn-hover':   'rgba(0,0,0,0.12)',
+      '--compose-overlay-bg': 'rgba(245, 245, 245, 0.96)',
+      '--compose-top-border': 'rgba(0,0,0,0.12)',
+    },
     terminal: {
-      background: '#111111', foreground: '#EEEEEE',
-      cursor: '#D97757', cursorAccent: '#111111',
+      background: '#FFFFFF', foreground: '#1A1A1A',
+      cursor: '#D97757', cursorAccent: '#FFFFFF',
       selectionBackground: 'rgba(217,119,87,0.30)',
-      black: '#1A1A1A', red: '#E5484D', green: '#30A46C', yellow: '#F76B15',
-      blue: '#4D9EFF', magenta: '#A06BDB', cyan: '#00B4D8', white: '#CCCCCC',
-      brightBlack: '#555555', brightRed: '#FF6369', brightGreen: '#4ADE80',
-      brightYellow: '#FFB224', brightBlue: '#74B3FF', brightMagenta: '#C084FC',
-      brightCyan: '#22D3EE', brightWhite: '#FFFFFF',
+      black: '#1A1A1A', red: '#C8252A', green: '#1A7A4A', yellow: '#B45309',
+      blue: '#1A6FCC', magenta: '#7C3AED', cyan: '#0077A8', white: '#555555',
+      brightBlack: '#777777', brightRed: '#E5484D', brightGreen: '#30A46C',
+      brightYellow: '#D97706', brightBlue: '#4D9EFF', brightMagenta: '#A06BDB',
+      brightCyan: '#00B4D8', brightWhite: '#AAAAAA',
     },
   },
 
   dark: {
-    // Only overrides the launch-screen variables; terminal stays identical to default.
     vars: {
       '--launch-bg':        '#111111',
       '--launch-bg2':       '#1A1A1A',
@@ -93,7 +108,16 @@ const THEMES = {
       '--launch-accent-h':  '#C96442',
       '--launch-accent-lt': 'rgba(217,119,87,0.15)',
     },
-    terminal: null,  // same as default
+    terminal: {
+      background: '#111111', foreground: '#EEEEEE',
+      cursor: '#D97757', cursorAccent: '#111111',
+      selectionBackground: 'rgba(217,119,87,0.30)',
+      black: '#1A1A1A', red: '#E5484D', green: '#30A46C', yellow: '#F76B15',
+      blue: '#4D9EFF', magenta: '#A06BDB', cyan: '#00B4D8', white: '#CCCCCC',
+      brightBlack: '#555555', brightRed: '#FF6369', brightGreen: '#4ADE80',
+      brightYellow: '#FFB224', brightBlue: '#74B3FF', brightMagenta: '#C084FC',
+      brightCyan: '#22D3EE', brightWhite: '#FFFFFF',
+    },
   },
 
   mono: {
@@ -150,9 +174,19 @@ function applyTheme(name) {
   term.options.theme = theme.terminal ?? THEMES.default.terminal;
 }
 
+function syncCliThemes() {
+  const lightMode = !settings.darkMode && !settings.monoMode;
+  fetch('/api/theme', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lightMode }),
+  }).catch(() => {});
+}
+
 function applySettings() {
   const name = settings.monoMode ? 'mono' : settings.darkMode ? 'dark' : 'default';
   applyTheme(name);
+  syncCliThemes();
   syncSettingsUI();
 }
 
@@ -200,7 +234,7 @@ const runnerToggleEl   = document.querySelector('.runner-toggle');
 const fitAddon = new FitAddon.FitAddon();
 const webLinks = new WebLinksAddon.WebLinksAddon();
 
-const initialTheme = settings.monoMode ? THEMES.mono.terminal : THEMES.default.terminal;
+const initialTheme = settings.monoMode ? THEMES.mono.terminal : settings.darkMode ? THEMES.dark.terminal : THEMES.default.terminal;
 
 const term = new Terminal({
   fontFamily:        '"JetBrains Mono", "Fira Code", monospace',
@@ -732,6 +766,7 @@ startBtn.addEventListener('click', async () => {
           yolo,
           extraArgs: settings.extraArgs,
           monochrome: settings.monoMode,
+          lightMode: !settings.darkMode && !settings.monoMode,
         }),
       });
       const data = await resp.json();

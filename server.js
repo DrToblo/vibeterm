@@ -62,6 +62,32 @@ function broadcast(data) {
 
 // ── tmux session management ────────────────────────────────────────────────────
 
+// ── CLI theme sync ─────────────────────────────────────────────────────────────
+
+function updateCliThemes(lightMode) {
+  // Claude Code: ~/.claude/settings.json  { theme: 'light' | 'dark' }
+  const claudeSettingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+  try {
+    let s = {};
+    try { s = JSON.parse(fs.readFileSync(claudeSettingsPath, 'utf8')); } catch (_) {}
+    s.theme = lightMode ? 'light' : 'dark';
+    fs.writeFileSync(claudeSettingsPath, JSON.stringify(s, null, 2));
+  } catch (err) {
+    console.error('Could not update Claude theme:', err.message);
+  }
+
+  // Gemini CLI: ~/.gemini/settings.json  { ui: { theme: 'Default Light' | 'Default' } }
+  const geminiSettingsPath = path.join(os.homedir(), '.gemini', 'settings.json');
+  try {
+    let s = {};
+    try { s = JSON.parse(fs.readFileSync(geminiSettingsPath, 'utf8')); } catch (_) {}
+    s.ui = { ...s.ui, theme: lightMode ? 'Default Light' : 'Default' };
+    fs.writeFileSync(geminiSettingsPath, JSON.stringify(s, null, 2));
+  } catch (err) {
+    console.error('Could not update Gemini theme:', err.message);
+  }
+}
+
 function tmuxName(cli, cwd) {
   const folder = path.basename(cwd)
     .replace(/[^a-zA-Z0-9_-]/g, '-')
@@ -372,8 +398,16 @@ app.post('/api/session/start', (req, res) => {
 
   if (!withinBrowseRoot(cwd)) return res.status(403).json({ error: 'Outside allowed directory' });
 
-  const { yolo, extraArgs, monochrome } = req.body;
+  const { yolo, extraArgs, monochrome, lightMode } = req.body;
+  updateCliThemes(!!lightMode);
   spawnSession(cli, cwd, { yolo: !!yolo, extraArgs: extraArgs || '', monochrome: !!monochrome });
+  res.json({ ok: true });
+});
+
+// Update CLI themes without starting a session (called on theme toggle)
+app.post('/api/theme', (req, res) => {
+  const { lightMode } = req.body;
+  updateCliThemes(!!lightMode);
   res.json({ ok: true });
 });
 

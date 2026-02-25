@@ -36,6 +36,14 @@
   /* ── Tab active state ── */
   --tab-active-bg:   transparent;
   --tab-active-text: var(--launch-accent);
+  /* ── Interactive overlays (flip for light bg) ── */
+  --ui-hover-bg:        rgba(255,255,255,0.06);
+  --ui-active-bg:       rgba(255,255,255,0.09);
+  --compose-border:     rgba(255,255,255,0.2);
+  --cancel-btn-bg:      rgba(255,255,255,0.08);
+  --cancel-btn-hover:   rgba(255,255,255,0.14);
+  --compose-overlay-bg: rgba(22, 22, 22, 0.92);
+  --compose-top-border: rgba(255,255,255,0.12);
 }
 
 /* ── Reset ── */
@@ -424,7 +432,7 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-.font-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.font-btn:hover { color: var(--text-primary); background: var(--ui-hover-bg); }
 .font-btn:active { opacity: 0.6; }
 .font-btn:disabled { opacity: 0.25; cursor: default; background: none; }
 #font-dec { font-size: 12px; }
@@ -718,7 +726,7 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-#menu-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+#menu-btn:hover { color: var(--text-primary); background: var(--ui-hover-bg); }
 #menu-btn:active { opacity: 0.6; }
 
 /* ── Header dropdown menu ── */
@@ -772,8 +780,8 @@ html, body {
   touch-action: manipulation;
 }
 .menu-item + .menu-item { border-top: 1px solid var(--border-color); }
-.menu-item:hover { background: rgba(255,255,255,0.05); }
-.menu-item:active { background: rgba(255,255,255,0.09); }
+.menu-item:hover { background: var(--ui-hover-bg); }
+.menu-item:active { background: var(--ui-active-bg); }
 .menu-item svg { flex-shrink: 0; color: var(--text-secondary); }
 #kill-btn.confirm { color: var(--status-red); }
 #kill-btn.confirm svg { color: var(--status-red); }
@@ -954,10 +962,10 @@ html, body {
   z-index: 60;
   display: flex;
   flex-direction: column;
-  background: rgba(22, 22, 22, 0.92);
+  background: var(--compose-overlay-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--compose-top-border);
   border-radius: 20px 20px 0 0;
   transform: translateY(100vh);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -970,7 +978,7 @@ html, body {
   display: block;
   width: 100%;
   resize: none;
-  border: 1.5px solid rgba(255,255,255,0.2);
+  border: 1.5px solid var(--compose-border);
   border-radius: 24px;
   padding: 14px 52px 52px 16px;
   font-family: var(--font-mono);
@@ -991,7 +999,7 @@ html, body {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: var(--cancel-btn-bg);
   border: none;
   color: var(--text-secondary);
   font-size: 13px;
@@ -1003,7 +1011,7 @@ html, body {
   touch-action: manipulation;
   transition: background 0.12s, color 0.12s;
 }
-#compose-cancel:hover { background: rgba(255,255,255,0.14); color: var(--text-primary); }
+#compose-cancel:hover { background: var(--cancel-btn-hover); color: var(--text-primary); }
 
 #compose-send {
   position: absolute;
